@@ -27,13 +27,13 @@ import { DashboardOverview } from '../../../core/models';
       <mat-card class="stat-card" (click)="router.navigate(['/dashboard/compliance/analytics'])">
         <mat-icon class="stat-card-icon">business</mat-icon>
         <div class="stat-label">Empresas Activas</div>
-        <div class="stat-number">{{ data.companies['active'] ?? 0 }}</div>
+        <div class="stat-number">{{ data.companies['active'] }}</div>
         <div class="stat-action"><mat-icon>arrow_forward</mat-icon> Ver overview</div>
       </mat-card>
       <mat-card class="stat-card" (click)="router.navigate(['/dashboard/compliance/analytics/logistics'])">
         <mat-icon class="stat-card-icon">local_shipping</mat-icon>
         <div class="stat-label">Embarques</div>
-        <div class="stat-number">{{ data.shipments['customs_approved'] ?? 0 }}</div>
+        <div class="stat-number">{{ data.shipments['customs_approved'] }}</div>
         <div class="stat-action"><mat-icon>arrow_forward</mat-icon> Ver logística</div>
       </mat-card>
       <mat-card class="stat-card" (click)="router.navigate(['/dashboard/compliance/analytics/compliance'])">

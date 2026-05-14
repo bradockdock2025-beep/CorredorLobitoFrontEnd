@@ -33,15 +33,15 @@ import { Transaction, TransactionSummary, Role, toNumber } from '../../../../cor
       <mat-icon>info</mat-icon>
       <span>
         <strong>Resumo:</strong>
-        Concluídas: <strong>{{ summary.counts['completed'] ?? 0 }}</strong>
+        Concluídas: <strong>{{ summary.counts['completed'] }}</strong>
         &nbsp;·&nbsp;
-        Pendentes: <strong>{{ summary.counts['pending'] ?? 0 }}</strong>
+        Pendentes: <strong>{{ summary.counts['pending'] }}</strong>
         &nbsp;·&nbsp;
-        Bloqueadas: <strong>{{ summary.counts['blocked'] ?? 0 }}</strong>
+        Bloqueadas: <strong>{{ summary.counts['blocked'] }}</strong>
         &nbsp;·&nbsp;
-        Canceladas: <strong>{{ summary.counts['cancelled'] ?? 0 }}</strong>
+        Canceladas: <strong>{{ summary.counts['cancelled'] }}</strong>
         &nbsp;·&nbsp;
-        Reembolsadas: <strong>{{ summary.counts['refunded'] ?? 0 }}</strong>
+        Reembolsadas: <strong>{{ summary.counts['refunded'] }}</strong>
         <ng-container *ngIf="summary.amounts['completed']">
           &nbsp;·&nbsp;
           Total concluído: <strong>{{ toNumber(summary.amounts['completed']) | number:'1.2-2' }} USD</strong>

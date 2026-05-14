@@ -51,7 +51,7 @@ import { RevenueAnalytics } from '../../../core/models';
           <mat-icon class="stat-card-icon">star</mat-icon>
           <div class="stat-label">Top Produto</div>
           <div class="stat-number" style="font-size:18px;font-weight:500;line-height:1.3">
-            {{ data.topProducts[0]?.name ?? '—' }}
+            {{ data.topProducts[0] ? data.topProducts[0].name : '—' }}
           </div>
           <div class="stat-action" *ngIf="data.topProducts[0]">
             {{ data.topProducts[0].total | number:'1.0-0' }} USD
