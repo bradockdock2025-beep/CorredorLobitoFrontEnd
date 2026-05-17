@@ -5,6 +5,15 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { PriceProposal } from '../models';
 
+function extractList<T>(r: unknown): T[] {
+  if (Array.isArray(r)) return r as T[];
+  if (r && typeof r === 'object') {
+    if ('data'  in (r as object)) return (r as { data: T[] }).data  ?? [];
+    if ('items' in (r as object)) return (r as { items: T[] }).items ?? [];
+  }
+  return [];
+}
+
 @Injectable({ providedIn: 'root' })
 export class PriceProposalService {
   private readonly base = `${environment.apiUrl}/price-proposals`;
@@ -12,12 +21,12 @@ export class PriceProposalService {
   constructor(private http: HttpClient) {}
 
   getAll(): Observable<PriceProposal[]> {
-    return this.http.get<{ data: PriceProposal[]; meta: unknown }>(this.base).pipe(map(r => r.data));
+    return this.http.get<unknown>(`${this.base}?limit=100`).pipe(map(r => extractList<PriceProposal>(r)));
   }
 
   getMyProposals(): Observable<PriceProposal[]> {
-    return this.http.get<{ data: PriceProposal[]; meta: unknown }>(`${this.base}/my-proposals`)
-      .pipe(map(r => r.data));
+    return this.http.get<unknown>(`${this.base}/my-proposals?limit=100`)
+      .pipe(map(r => extractList<PriceProposal>(r)));
   }
 
   getById(id: string): Observable<PriceProposal> {

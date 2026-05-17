@@ -1,4 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -17,23 +19,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
       font-size: 10px; font-weight: 700; margin-left: 4px;
     }
 
-    .customs-hint {
-      display: flex; align-items: flex-start; gap: 10px;
-      margin-bottom: 16px; padding: 12px 14px;
-      border: 1px solid #ffe082; border-radius: 10px;
-      background: #fff8e1; color: #5f4322;
-    }
-    .customs-hint mat-icon {
-      color: #f9a825;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-    .customs-hint strong,
-    .customs-hint span {
-      display: block;
-    }
-
-    .row-actions {
+.row-actions {
       display: flex;
       justify-content: flex-end;
       align-items: center;
@@ -92,15 +78,11 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
       <mat-button-toggle value="in_transit">Em Trânsito</mat-button-toggle>
       <mat-button-toggle value="customs_approved">Aprovados</mat-button-toggle>
       <mat-button-toggle value="held">Retidos</mat-button-toggle>
+      <mat-button-toggle value="customs_rejected">
+        Rejeitados
+        <span class="filter-badge" *ngIf="countByStatus('customs_rejected') > 0">{{ countByStatus('customs_rejected') }}</span>
+      </mat-button-toggle>
     </mat-button-toggle-group>
-
-    <div class="customs-hint" *ngIf="role === 'customs'">
-      <mat-icon>gavel</mat-icon>
-      <div>
-        <strong>Acções CUSTOMS disponíveis na lista</strong>
-        <span><strong>Na Fronteira</strong> permite aprovar, rejeitar ou reter. <strong>Em Trânsito</strong> permite reter.</span>
-      </div>
-    </div>
 
     <!-- Progress bar (above card) -->
     <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
@@ -223,7 +205,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
     </mat-card>
   `,
 })
-export class ShipmentsListComponent implements OnInit {
+export class ShipmentsListComponent implements OnInit, OnDestroy {
   shipments:    Shipment[] = [];
   filtered:     Shipment[] = [];
   filterStatus  = '';
@@ -232,7 +214,8 @@ export class ShipmentsListComponent implements OnInit {
   actionShipmentId: string | null = null;
   role: Role | string = '';
   cols = ['cd', 'route', 'status', 'lastLocation', 'eta', 'actions'];
-  private readonly allowedFilters: ShipmentStatus[] = ['at_border', 'in_transit', 'customs_approved', 'held'];
+  private readonly allowedFilters: ShipmentStatus[] = ['at_border', 'in_transit', 'customs_approved', 'held', 'customs_rejected'];
+  private destroy$ = new Subject<void>();
 
   constructor(
     private route: ActivatedRoute,
@@ -245,9 +228,20 @@ export class ShipmentsListComponent implements OnInit {
 
   ngOnInit(): void {
     this.role = this.auth.getCurrentUser()?.role ?? '';
-    const requestedStatus = this.route.snapshot.queryParamMap.get('status');
-    this.filterStatus = this.resolveInitialFilter(requestedStatus);
+    // Subscrição reactiva — actualiza o filtro quando o dashboard navega com ?status=X
+    this.route.queryParamMap
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((params) => {
+        const requested = params.get('status');
+        this.filterStatus = this.resolveInitialFilter(requested);
+        this.applyFilter();
+      });
     this.reload();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   reload(): void {
@@ -354,7 +348,8 @@ export class ShipmentsListComponent implements OnInit {
     if (status && this.allowedFilters.includes(status as ShipmentStatus)) {
       return status;
     }
-    return this.role === 'customs' ? 'at_border' : '';
+    // Mostra "Todos" por defeito — o badge na aba "Na Fronteira" alerta o customs
+    return '';
   }
 
   private syncFilterQueryParam(): void {

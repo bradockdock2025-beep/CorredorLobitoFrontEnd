@@ -1,11 +1,19 @@
-import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Router, ActivatedRoute } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { OrderService } from '../../../../core/services/order.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { Order, Role, toNumber } from '../../../../core/models';
 
 @Component({
   selector: 'app-orders-list',
+  styles: [`.filter-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--primary); color: #fff;
+    font-size: 10px; font-weight: 700; margin-left: 4px;
+  }`],
   template: `
     <!-- Page header -->
     <div class="page-header">
@@ -30,6 +38,18 @@ import { Order, Role, toNumber } from '../../../../core/models';
       </div>
     </div>
 
+    <!-- Filtro de estado -->
+    <mat-button-toggle-group [(value)]="filterStatus" (change)="onFilterChange()" class="mb-md">
+      <mat-button-toggle value="">Todos</mat-button-toggle>
+      <mat-button-toggle value="draft">
+        Rascunho
+        <span class="filter-count" *ngIf="countByStatus('draft') > 0">{{ countByStatus('draft') }}</span>
+      </mat-button-toggle>
+      <mat-button-toggle value="paid">Pagos</mat-button-toggle>
+      <mat-button-toggle value="blocked">Bloqueados</mat-button-toggle>
+      <mat-button-toggle value="cancelled">Cancelados</mat-button-toggle>
+    </mat-button-toggle-group>
+
     <!-- Progress bar (above card) -->
     <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 
@@ -47,7 +67,7 @@ import { Order, Role, toNumber } from '../../../../core/models';
         </div>
 
         <!-- Table -->
-        <table mat-table [dataSource]="orders"
+        <table mat-table [dataSource]="filtered"
                *ngIf="!loading && !loadError"
                class="full-width">
 
@@ -149,28 +169,65 @@ import { Order, Role, toNumber } from '../../../../core/models';
     </mat-card>
   `,
 })
-export class OrdersListComponent implements OnInit {
-  orders: Order[] = [];
-  loading = false;
-  loadError = false;
+export class OrdersListComponent implements OnInit, OnDestroy {
+  orders:       Order[] = [];
+  filtered:     Order[] = [];
+  filterStatus  = '';
+  loading       = false;
+  loadError     = false;
   role: Role | string = '';
   cols = ['cd', 'company', 'status', 'netAmount', 'taxAmount', 'totalAmount', 'createdAt', 'actions'];
   readonly toNumber = toNumber;
+  private destroy$ = new Subject<void>();
 
-  constructor(public router: Router, private svc: OrderService, private auth: AuthService) {}
+  constructor(
+    public router: Router,
+    private route: ActivatedRoute,
+    private svc: OrderService,
+    private auth: AuthService,
+  ) {}
 
   ngOnInit(): void {
     this.role = this.auth.getCurrentUser()?.role ?? '';
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
+      const status = params.get('status') ?? '';
+      this.filterStatus = status;
+      this.applyFilter();
+    });
     this.reload();
   }
+
+  ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
 
   reload(): void {
     this.loading = true;
     this.loadError = false;
     const obs = this.role === 'buyer' ? this.svc.getMyOrders() : this.svc.getAll();
     obs.subscribe({
-      next: (d) => { this.orders = d; this.loading = false; },
+      next: (d) => { this.orders = d; this.applyFilter(); this.loading = false; },
       error: () => { this.loading = false; this.loadError = true; },
     });
+  }
+
+  applyFilter(): void {
+    this.filtered = this.filterStatus
+      ? this.orders.filter((o) => o.status === this.filterStatus)
+      : this.orders;
+  }
+
+  onFilterChange(): void {
+    this.applyFilter();
+    if (this.role === 'buyer') {
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { status: this.filterStatus || null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }
+  }
+
+  countByStatus(status: string): number {
+    return this.orders.filter((o) => o.status === status).length;
   }
 }

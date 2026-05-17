@@ -5,6 +5,15 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Transaction, TransactionSummary } from '../models';
 
+function extractList<T>(r: unknown): T[] {
+  if (Array.isArray(r)) return r as T[];
+  if (r && typeof r === 'object') {
+    if ('data'  in (r as object)) return (r as { data: T[] }).data  ?? [];
+    if ('items' in (r as object)) return (r as { items: T[] }).items ?? [];
+  }
+  return [];
+}
+
 @Injectable({ providedIn: 'root' })
 export class TransactionService {
   private readonly base = `${environment.apiUrl}/transactions`;
@@ -12,7 +21,7 @@ export class TransactionService {
   constructor(private http: HttpClient) {}
 
   getAll(): Observable<Transaction[]> {
-    return this.http.get<{ data: Transaction[]; meta: unknown }>(this.base).pipe(map(r => r.data));
+    return this.http.get<unknown>(`${this.base}?limit=100`).pipe(map(r => extractList<Transaction>(r)));
   }
 
   getSummary(): Observable<TransactionSummary> {

@@ -8,7 +8,11 @@
       "Bash(npm run *)",
       "Bash(curl -s http://localhost:3000/docs-json)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('API OK - versão:', d.get\\('info',{}\\).get\\('version','?'\\)\\)\")",
-      "Bash(lsof -ti:3000)"
+      "Bash(lsof -ti:3000)",
+      "Bash(sed -i '' 's|return this.http.get<{ data: Company\\\\[\\\\]; meta: unknown }>\\(this.base\\).pipe|return this.http.get<{ data: Company[]; meta: unknown }>\\(`${this.base}?limit=200`\\).pipe|g' /Users/macbookpro/Documents/LCD-DOCS/CorredorLobitoFrontEnd/src/app/core/services/company.service.ts)",
+      "Bash(sed -i '' 's|return this.http.get<{ data: Transaction\\\\[\\\\]; meta: unknown }>\\(this.base\\).pipe|return this.http.get<{ data: Transaction[]; meta: unknown }>\\(`${this.base}?limit=200`\\).pipe|g' /Users/macbookpro/Documents/LCD-DOCS/CorredorLobitoFrontEnd/src/app/core/services/transaction.service.ts)",
+      "Bash(sed -i '' 's|return this.http.get<{ data: PriceProposal\\\\[\\\\]; meta: unknown }>\\(this.base\\).pipe|return this.http.get<{ data: PriceProposal[]; meta: unknown }>\\(`${this.base}?limit=200`\\).pipe|g' /Users/macbookpro/Documents/LCD-DOCS/CorredorLobitoFrontEnd/src/app/core/services/price-proposal.service.ts)",
+      "Bash(sed -i '' 's|return this.http.get<{ data: PriceProposal\\\\[\\\\]; meta: unknown }>\\(`\\\\${this.base}/my-proposals`\\)|return this.http.get<{ data: PriceProposal[]; meta: unknown }>\\(`${this.base}/my-proposals?limit=200`\\)|g' /Users/macbookpro/Documents/LCD-DOCS/CorredorLobitoFrontEnd/src/app/core/services/price-proposal.service.ts)"
     ],
     "additionalDirectories": [
       "/Users/macbookpro/Documents/LCD-DOCS/corredor-lobito/corredor-lobito-api/src/modules/orders"

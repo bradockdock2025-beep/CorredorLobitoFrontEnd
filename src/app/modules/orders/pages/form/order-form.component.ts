@@ -410,8 +410,12 @@ export class OrderFormComponent implements OnInit {
   }
 
   cancelOrder(): void {
-    this.createdOrder = null;
-    this.cart = [];
+    // O draft fica no backend — navega para o detalhe para o buyer o gerir
+    if (this.createdOrder) {
+      this.router.navigate(['/dashboard/buyer/orders', this.createdOrder.id]);
+    } else {
+      this.router.navigate(['/dashboard/buyer/orders']);
+    }
   }
 
   // ── Step 2 → Step 3: POST /orders/:id/pay ─────────────────────────────────

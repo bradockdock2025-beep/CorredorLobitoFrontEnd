@@ -75,7 +75,8 @@ const NAV_CONFIG: Record<Role, NavEntry[]> = {
   buyer: [
     { type: 'link', label: 'Dashboard', icon: 'dashboard', route: '/dashboard/buyer' },
     { type: 'group', title: 'COMPRAS', expanded: true, items: [
-      { label: 'Os Meus Pedidos', icon: 'receipt_long', route: '/dashboard/buyer/orders' },
+      { label: 'Os Meus Pedidos', icon: 'receipt_long',  route: '/dashboard/buyer/orders' },
+      { label: 'Suporte',         icon: 'support_agent', route: '/dashboard/buyer/support-tickets' },
     ]},
   ],
   operator: [
@@ -87,7 +88,8 @@ const NAV_CONFIG: Record<Role, NavEntry[]> = {
   customs: [
     { type: 'link', label: 'Dashboard', icon: 'dashboard', route: '/dashboard/customs' },
     { type: 'group', title: 'ALFÂNDEGA', expanded: true, items: [
-      { label: 'Embarques', icon: 'local_shipping', route: '/dashboard/customs/shipments' },
+      { label: 'Embarques',  icon: 'local_shipping',  route: '/dashboard/customs/shipments' },
+      { label: 'Suporte',    icon: 'support_agent',   route: '/dashboard/customs/support-tickets' },
     ]},
   ],
   analyst: [

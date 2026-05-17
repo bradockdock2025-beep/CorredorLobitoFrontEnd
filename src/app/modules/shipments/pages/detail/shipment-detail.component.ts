@@ -104,9 +104,9 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
             </button>
           </ng-container>
 
-          <!-- STATE -->
-          <ng-container *ngIf="role === 'state'">
-            <button mat-raised-button color="primary" (click)="hold()">
+          <!-- STATE — reter apenas em estados activos -->
+          <ng-container *ngIf="role === 'state' && canStateHold()">
+            <button mat-raised-button color="warn" (click)="hold()">
               <mat-icon>pause</mat-icon> Reter Embarque
             </button>
           </ng-container>
@@ -292,13 +292,18 @@ export class ShipmentDetailComponent implements OnInit {
     if (!this.shipment) return false;
     if (this.role === 'operator' && this.canOperatorUpdate()) return true;
     if (this.role === 'customs'  && ['at_border','in_transit'].includes(this.shipment.status)) return true;
-    if (this.role === 'state') return true;
+    if (this.role === 'state'    && this.canStateHold()) return true;
     return false;
   }
 
   canOperatorUpdate(): boolean {
     if (!this.shipment) return false;
     return !['delivered', 'customs_rejected'].includes(this.shipment.status);
+  }
+
+  canStateHold(): boolean {
+    if (!this.shipment) return false;
+    return !['delivered', 'customs_rejected', 'held'].includes(this.shipment.status);
   }
 
   toggleTrackingForm(): void {

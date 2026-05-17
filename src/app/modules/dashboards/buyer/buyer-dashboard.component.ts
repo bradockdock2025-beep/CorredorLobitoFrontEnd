@@ -27,21 +27,21 @@ import { AuthService }  from '../../../core/services/auth.service';
     <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 
     <div class="stats-grid stats-grid-3">
-      <mat-card class="stat-card" (click)="router.navigate(['/dashboard/buyer/orders'])">
+      <mat-card class="stat-card" (click)="router.navigate(['/dashboard/buyer/orders'], {queryParams: {status: 'draft'}})">
         <mat-icon class="stat-card-icon">receipt_long</mat-icon>
         <div class="stat-label">Pedidos em Rascunho</div>
         <div class="stat-number">{{ draftCount }}</div>
         <div class="stat-action"><mat-icon>arrow_forward</mat-icon> Ver rascunhos</div>
       </mat-card>
 
-      <mat-card class="stat-card" (click)="router.navigate(['/dashboard/buyer/orders'])">
+      <mat-card class="stat-card" (click)="router.navigate(['/dashboard/buyer/orders'], {queryParams: {status: 'paid'}})">
         <mat-icon class="stat-card-icon">payment</mat-icon>
         <div class="stat-label">Pedidos Pagos</div>
         <div class="stat-number">{{ paidCount }}</div>
         <div class="stat-action"><mat-icon>arrow_forward</mat-icon> Ver pedidos pagos</div>
       </mat-card>
 
-      <mat-card class="stat-card" (click)="router.navigate(['/dashboard/buyer/orders'])">
+      <mat-card class="stat-card" (click)="router.navigate(['/dashboard/buyer/orders'], {queryParams: {status: 'blocked'}})">
         <mat-icon class="stat-card-icon">block</mat-icon>
         <div class="stat-label">Pedidos Bloqueados</div>
         <div class="stat-number">{{ blockedCount }}</div>

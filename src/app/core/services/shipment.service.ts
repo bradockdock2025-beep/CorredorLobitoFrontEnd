@@ -5,6 +5,15 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Shipment, CustomsDispatch, ShipmentStatus } from '../models';
 
+function extractList<T>(r: T[] | { data: T[] } | { items: T[] } | unknown): T[] {
+  if (Array.isArray(r)) return r as T[];
+  if (r && typeof r === 'object') {
+    if ('data'  in (r as object)) return (r as { data: T[] }).data  ?? [];
+    if ('items' in (r as object)) return (r as { items: T[] }).items ?? [];
+  }
+  return [];
+}
+
 @Injectable({ providedIn: 'root' })
 export class ShipmentService {
   private readonly base = `${environment.apiUrl}/shipments`;
@@ -12,13 +21,15 @@ export class ShipmentService {
   constructor(private http: HttpClient) {}
 
   getAll(status?: ShipmentStatus): Observable<Shipment[]> {
-    const url = status ? `${this.base}?status=${status}` : this.base;
-    return this.http.get<{ data: Shipment[]; meta: unknown }>(url).pipe(map(r => r.data));
+    const params = status
+      ? `?status=${status}&limit=100`
+      : '?limit=100';
+    return this.http.get<unknown>(`${this.base}${params}`).pipe(map(r => extractList<Shipment>(r)));
   }
 
   getMyShipments(): Observable<Shipment[]> {
-    return this.http.get<{ data: Shipment[]; meta: unknown }>(`${this.base}/my-shipments`)
-      .pipe(map(r => r.data));
+    return this.http.get<unknown>(`${this.base}/my-shipments?limit=100`)
+      .pipe(map(r => extractList<Shipment>(r)));
   }
 
   getByOrderId(orderId: string): Observable<Shipment> {

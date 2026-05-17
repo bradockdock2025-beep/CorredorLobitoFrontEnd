@@ -5,6 +5,15 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Product } from '../models';
 
+function extractList<T>(r: unknown): T[] {
+  if (Array.isArray(r)) return r as T[];
+  if (r && typeof r === 'object') {
+    if ('data'  in (r as object)) return (r as { data: T[] }).data  ?? [];
+    if ('items' in (r as object)) return (r as { items: T[] }).items ?? [];
+  }
+  return [];
+}
+
 @Injectable({ providedIn: 'root' })
 export class ProductService {
   private readonly base = `${environment.apiUrl}/products`;
@@ -12,12 +21,12 @@ export class ProductService {
   constructor(private http: HttpClient) {}
 
   getAll(): Observable<Product[]> {
-    return this.http.get<{ data: Product[]; meta: unknown }>(this.base).pipe(map(r => r.data));
+    return this.http.get<unknown>(`${this.base}?limit=100`).pipe(map(r => extractList<Product>(r)));
   }
 
   getMyProducts(): Observable<Product[]> {
-    return this.http.get<{ data: Product[]; meta: unknown }>(`${this.base}/my-products`)
-      .pipe(map(r => r.data));
+    return this.http.get<unknown>(`${this.base}/my-products?limit=100`)
+      .pipe(map(r => extractList<Product>(r)));
   }
 
   getById(id: string): Observable<Product> {

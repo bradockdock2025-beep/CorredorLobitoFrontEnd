@@ -5,6 +5,15 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Order, Shipment } from '../models';
 
+function extractList<T>(r: unknown): T[] {
+  if (Array.isArray(r)) return r as T[];
+  if (r && typeof r === 'object') {
+    if ('data'  in (r as object)) return (r as { data: T[] }).data  ?? [];
+    if ('items' in (r as object)) return (r as { items: T[] }).items ?? [];
+  }
+  return [];
+}
+
 @Injectable({ providedIn: 'root' })
 export class OrderService {
   private readonly base = `${environment.apiUrl}/orders`;
@@ -12,13 +21,13 @@ export class OrderService {
   constructor(private http: HttpClient) {}
 
   getAll(): Observable<Order[]> {
-    return this.http.get<{ data: Order[]; meta: unknown }>(this.base)
-      .pipe(map(r => r.data));
+    return this.http.get<unknown>(`${this.base}?limit=100`)
+      .pipe(map(r => extractList<Order>(r)));
   }
 
   getMyOrders(): Observable<Order[]> {
-    return this.http.get<{ data: Order[]; meta: unknown }>(`${this.base}/my-orders`)
-      .pipe(map(r => r.data));
+    return this.http.get<unknown>(`${this.base}/my-orders?limit=100`)
+      .pipe(map(r => extractList<Order>(r)));
   }
 
   getById(id: string): Observable<Order> {
