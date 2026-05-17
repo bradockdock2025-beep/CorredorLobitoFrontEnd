@@ -116,7 +116,7 @@ const ROLE_LABELS: Record<string, string> = {
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background: #1a1a1a;
+      background: var(--primary);
       color: #fff;
       display: flex;
       align-items: center;
@@ -125,7 +125,7 @@ const ROLE_LABELS: Record<string, string> = {
       font-weight: 700;
       flex-shrink: 0;
     }
-    .menu-name { font-size: 14px; font-weight: 600; color: #1a1a1a; line-height: 1.2; }
+    .menu-name { font-size: 14px; font-weight: 600; color: var(--primary); line-height: 1.2; }
     .menu-role {
       font-size: 11px;
       color: #9e9e9e;

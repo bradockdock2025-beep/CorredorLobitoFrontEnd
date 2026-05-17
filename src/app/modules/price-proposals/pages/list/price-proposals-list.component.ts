@@ -61,7 +61,7 @@ import { PriceProposal, Role } from '../../../../core/models';
           <ng-container matColumnDef="product">
             <th mat-header-cell *matHeaderCellDef>Produto</th>
             <td mat-cell *matCellDef="let p">
-              <span class="table-link">{{ p.product?.name ?? p.productId }}</span>
+              <span class="table-link">{{ p.product?.name ?? '—' }}</span>
             </td>
           </ng-container>
 

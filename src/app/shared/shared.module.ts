@@ -35,6 +35,8 @@ import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { MainLayoutComponent } from './components/main-layout/main-layout.component';
 import { StatusBadgeComponent } from './components/status-badge/status-badge.component';
 import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog.component';
+import { DocumentsPanelComponent } from './components/documents-panel/documents-panel.component';
+import { ThemeSwitcherComponent } from './components/theme-switcher/theme-switcher.component';
 
 const MATERIAL = [
   MatToolbarModule, MatSidenavModule, MatListModule, MatIconModule,
@@ -53,12 +55,15 @@ const MATERIAL = [
     MainLayoutComponent,
     StatusBadgeComponent,
     ConfirmDialogComponent,
+    DocumentsPanelComponent,
+    ThemeSwitcherComponent,
   ],
   imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, ...MATERIAL],
   exports: [
     CommonModule, RouterModule, FormsModule, ReactiveFormsModule,
     TopbarComponent, SidebarComponent, MainLayoutComponent,
     StatusBadgeComponent, ConfirmDialogComponent,
+    DocumentsPanelComponent, ThemeSwitcherComponent,
     ...MATERIAL,
   ],
 })

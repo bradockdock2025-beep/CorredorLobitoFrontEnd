@@ -4,6 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ShipmentService } from '../../../../core/services/shipment.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { PdfService } from '../../../../core/services/pdf.service';
 import { Shipment, Role, ShipmentStatus } from '../../../../core/models';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 
@@ -16,6 +17,19 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
     .sk-label { height:12px; width:120px; margin-bottom:20px; }
     .sk-field  { height:44px; margin-bottom:16px; }
     .detail-progress { position:sticky; top:0; z-index:10; margin-bottom:16px; }
+    .pdf-bar {
+      display: flex; align-items: center; gap: 12px;
+      background: #e8f5e9; border: 1px solid #c8e6c9;
+      border-radius: 10px; padding: 12px 16px;
+    }
+    .pdf-bar-icon { color: #2e7d32; }
+    .pdf-bar span { flex: 1; font-size: 14px; font-weight: 600; color: #1b5e20; }
+    .tracking-form-card { margin-bottom: 16px; border: 2px solid var(--primary) !important; }
+    .tracking-form { display: flex; flex-direction: column; gap: 4px; }
+    .full-width { width: 100%; }
+    .tracking-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+    .order-ref { font-family: monospace; font-size: 13px; color: var(--primary); }
+    .warn-text { color: #c5221f; }
   `],
   template: `
     <!-- Progress bar — always visible during any loading -->
@@ -63,10 +77,11 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
         </div>
 
         <div class="detail-actions">
-          <!-- OPERATOR -->
-          <ng-container *ngIf="role === 'operator'">
-            <button mat-raised-button color="primary" (click)="updateTracking()">
-              <mat-icon>edit_location</mat-icon> Actualizar Localização
+          <!-- OPERATOR: só pode actualizar se o embarque não estiver entregue/rejeitado -->
+          <ng-container *ngIf="role === 'operator' && canOperatorUpdate()">
+            <button mat-raised-button color="primary" (click)="toggleTrackingForm()">
+              <mat-icon>edit_location</mat-icon>
+              {{ showTrackingForm ? 'Cancelar' : 'Actualizar Localização' }}
             </button>
           </ng-container>
 
@@ -98,11 +113,62 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
         </div>
       </div>
 
+      <!-- ── Formulário de tracking (inline, operator) ───────────────── -->
+      <mat-card class="tracking-form-card" *ngIf="role === 'operator' && showTrackingForm">
+        <mat-card-content class="card-section">
+          <p class="card-section-title">Actualizar Localização</p>
+          <div class="tracking-form">
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Localização actual *</mat-label>
+              <mat-icon matPrefix>place</mat-icon>
+              <input matInput [(ngModel)]="trackingLocation"
+                     placeholder="ex: Fronteira de Luau, Angola">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Estado do embarque *</mat-label>
+              <mat-select [(ngModel)]="trackingStatus">
+                <mat-option value="created">Criado</mat-option>
+                <mat-option value="in_transit">Em Trânsito</mat-option>
+                <mat-option value="at_border">Na Fronteira</mat-option>
+                <mat-option value="delivered">Entregue</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Notas (opcional)</mat-label>
+              <textarea matInput [(ngModel)]="trackingNotes" rows="2"
+                        placeholder="ex: Documentação entregue à alfândega"></textarea>
+            </mat-form-field>
+
+            <div class="tracking-actions">
+              <button mat-button type="button" (click)="toggleTrackingForm()">Cancelar</button>
+              <button mat-raised-button color="primary"
+                      [disabled]="!trackingLocation.trim() || !trackingStatus || savingTracking"
+                      (click)="submitTracking()">
+                <mat-spinner diameter="16" *ngIf="savingTracking"></mat-spinner>
+                <mat-icon *ngIf="!savingTracking">save</mat-icon>
+                <span>Guardar Actualização</span>
+              </button>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
       <!-- ── Info card ───────────────────────────────────────────────── -->
       <mat-card>
         <mat-card-content class="card-section">
           <p class="card-section-title">Informação do Embarque</p>
           <div class="detail-grid">
+            <div class="detail-field">
+              <label>Pedido</label>
+              <span>—</span>
+            </div>
+            <div class="detail-field">
+              <label>Operador</label>
+              <span>{{ shipment.operator?.fullName ?? '—' }}</span>
+            </div>
             <div class="detail-field">
               <label>Origem</label>
               <span>{{ shipment.origin }}</span>
@@ -119,13 +185,9 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
               <label>Última Localização</label>
               <span>{{ shipment.lastLocation ?? '—' }}</span>
             </div>
-            <div class="detail-field">
-              <label>Operador</label>
-              <span>{{ shipment.operator?.fullName ?? '—' }}</span>
-            </div>
             <div class="detail-field" *ngIf="shipment.holdReason">
               <label>Motivo Retenção</label>
-              <span>{{ shipment.holdReason }}</span>
+              <span class="warn-text">{{ shipment.holdReason }}</span>
             </div>
           </div>
         </mat-card-content>
@@ -186,32 +248,72 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
         </mat-card-content>
       </mat-card>
 
+      <!-- Despacho PDF ──────────────────────────────────────────── -->
+      <div class="mt-md" *ngIf="shipment.customsDispatch?.status === 'approved'">
+        <div class="pdf-bar">
+          <mat-icon class="pdf-bar-icon">description</mat-icon>
+          <span>Despacho Aduaneiro disponível</span>
+          <button mat-raised-button color="primary" (click)="downloadDispatchPdf()" [disabled]="pdfLoading">
+            <mat-spinner diameter="16" *ngIf="pdfLoading"></mat-spinner>
+            <mat-icon *ngIf="!pdfLoading">picture_as_pdf</mat-icon>
+            Descarregar Despacho PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Documentos do embarque ────────────────────────────────── -->
+      <div class="mt-md">
+        <app-documents-panel
+          entityType="shipment"
+          [entityId]="shipment.id"
+          [documents]="shipment.documents ?? []"
+          [autoLoad]="true">
+        </app-documents-panel>
+      </div>
+
     </ng-container>
   `,
 })
 export class ShipmentDetailComponent implements OnInit {
-  shipment: Shipment | null = null;
-  loading = false;
-  loadError = false;
+  shipment:      Shipment | null = null;
+  loading        = false;
+  loadError      = false;
+  pdfLoading     = false;
   role: Role | null = null;
 
-  readonly STATUS_OPTIONS: { value: ShipmentStatus; label: string }[] = [
-    { value: 'in_transit',  label: 'Em Trânsito' },
-    { value: 'at_border',   label: 'Na Fronteira' },
-    { value: 'delivered',   label: 'Entregue' },
-  ];
+  // tracking form
+  showTrackingForm = false;
+  savingTracking   = false;
+  trackingLocation = '';
+  trackingStatus: ShipmentStatus = 'in_transit';
+  trackingNotes    = '';
 
   get hasActions(): boolean {
     if (!this.shipment) return false;
-    if (this.role === 'operator') return true;
+    if (this.role === 'operator' && this.canOperatorUpdate()) return true;
     if (this.role === 'customs'  && ['at_border','in_transit'].includes(this.shipment.status)) return true;
     if (this.role === 'state') return true;
     return false;
   }
 
+  canOperatorUpdate(): boolean {
+    if (!this.shipment) return false;
+    return !['delivered', 'customs_rejected'].includes(this.shipment.status);
+  }
+
+  toggleTrackingForm(): void {
+    this.showTrackingForm = !this.showTrackingForm;
+    if (!this.showTrackingForm) {
+      this.trackingLocation = '';
+      this.trackingNotes    = '';
+      this.trackingStatus   = 'in_transit';
+    }
+  }
+
   constructor(
     private route: ActivatedRoute, public router: Router,
     private svc: ShipmentService, private auth: AuthService,
+    private pdfSvc: PdfService,
     private dialog: MatDialog, private snack: MatSnackBar,
   ) {}
 
@@ -232,20 +334,44 @@ export class ShipmentDetailComponent implements OnInit {
 
   back(): void { this.router.navigate([`/dashboard/${this.role}/shipments`]); }
 
+  downloadDispatchPdf(): void {
+    if (!this.shipment) return;
+    this.pdfLoading = true;
+    this.pdfSvc.getDispatchPdf(this.shipment.id).subscribe({
+      next: (res) => { this.pdfLoading = false; this.pdfSvc.openPdf(res); },
+      error: (e) => { this.pdfLoading = false; this.snack.open(e?.error?.message ?? 'PDF não disponível.', 'Fechar', { duration: 3000 }); },
+    });
+  }
+
   private open(data: ConfirmDialogData) {
     return this.dialog.open<ConfirmDialogComponent, ConfirmDialogData>(ConfirmDialogComponent, { data });
   }
 
-  updateTracking(): void {
-    this.open({ title: 'Actualizar Localização', message: 'Nova localização do embarque:', inputLabel: 'Localização *', inputRequired: true, confirmText: 'Actualizar' })
-      .afterClosed().subscribe((location: string) => {
-        if (!location) return;
-        this.loading = true;
-        this.svc.updateTracking(this.shipment!.id, { location, status: 'in_transit' }).subscribe({
-          next: (s) => { this.shipment = s; this.loading = false; this.snack.open('Tracking actualizado', 'Fechar', { duration: 3000 }); },
-          error: (e) => { this.loading = false; this.snack.open(e?.error?.message ?? 'Erro', 'Fechar', { duration: 3000 }); },
-        });
-      });
+  submitTracking(): void {
+    if (!this.trackingLocation.trim() || !this.trackingStatus) return;
+    this.savingTracking = true;
+
+    const payload: { location: string; status: ShipmentStatus; notes?: string } = {
+      location: this.trackingLocation.trim(),
+      status:   this.trackingStatus,
+    };
+    if (this.trackingNotes.trim()) payload.notes = this.trackingNotes.trim();
+
+    this.svc.updateTracking(this.shipment!.id, payload).subscribe({
+      next: (s) => {
+        this.shipment        = s;
+        this.savingTracking  = false;
+        this.showTrackingForm = false;
+        this.trackingLocation = '';
+        this.trackingNotes    = '';
+        this.trackingStatus   = 'in_transit';
+        this.snack.open('Localização actualizada com sucesso.', 'Fechar', { duration: 3000 });
+      },
+      error: (e) => {
+        this.savingTracking = false;
+        this.snack.open(e?.error?.message ?? 'Erro ao actualizar tracking', 'Fechar', { duration: 3000 });
+      },
+    });
   }
 
   approve(): void {

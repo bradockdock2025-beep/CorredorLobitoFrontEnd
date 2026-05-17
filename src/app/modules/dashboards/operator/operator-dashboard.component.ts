@@ -58,7 +58,7 @@ export class OperatorDashboardComponent implements OnInit {
   ngOnInit(): void {
     this.userName = this.auth.getCurrentUser()?.fullName ?? '';
     this.loading = true;
-    this.svc.getAll().subscribe({
+    this.svc.getMyShipments().subscribe({
       next: (d) => {
         this.createdCount = d.filter((s) => s.status === 'created').length;
         this.transitCount = d.filter((s) => s.status === 'in_transit').length;

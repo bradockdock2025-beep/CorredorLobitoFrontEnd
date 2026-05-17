@@ -79,7 +79,7 @@ import { Transaction, TransactionSummary, Role, toNumber } from '../../../../cor
           <ng-container matColumnDef="orderId">
             <th mat-header-cell *matHeaderCellDef>Pedido</th>
             <td mat-cell *matCellDef="let t">
-              <span class="id-text">{{ t.order?.cd ?? (t.orderId | slice:0:8) }}</span>
+              <span class="id-text">{{ t.order?.cd ?? '—' }}</span>
             </td>
           </ng-container>
 

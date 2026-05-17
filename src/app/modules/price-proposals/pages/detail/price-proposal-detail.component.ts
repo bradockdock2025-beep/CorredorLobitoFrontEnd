@@ -55,7 +55,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
           </nav>
           <div class="detail-title-row">
             <mat-icon class="page-icon">price_change</mat-icon>
-            <h1 class="detail-title">{{ proposal.product?.name ?? proposal.productId }}</h1>
+            <h1 class="detail-title">{{ proposal.product?.name ?? '—' }}</h1>
             <app-status-badge [status]="proposal.status"></app-status-badge>
             <span class="id-text">{{ proposal.cd }}</span>
           </div>
@@ -99,7 +99,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
             <div class="detail-grid">
               <div class="detail-field">
                 <label>Produto</label>
-                <span>{{ proposal.product?.name ?? proposal.productId }}</span>
+                <span>{{ proposal.product?.name ?? '—' }}</span>
               </div>
               <div class="detail-field">
                 <label>Categoria</label>

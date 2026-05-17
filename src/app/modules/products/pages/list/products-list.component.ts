@@ -30,6 +30,16 @@ import { Product, Role } from '../../../../core/models';
       </div>
     </div>
 
+    <!-- Status filter (state/staff) -->
+    <mat-button-toggle-group [(value)]="filterStatus" (change)="applyFilter()" class="mb-md"
+                             *ngIf="role === 'state' || role === 'staff'">
+      <mat-button-toggle value="">Todos</mat-button-toggle>
+      <mat-button-toggle value="pending_review">Em Revisão</mat-button-toggle>
+      <mat-button-toggle value="staff_validated">Validado STAFF</mat-button-toggle>
+      <mat-button-toggle value="published_official">Publicado</mat-button-toggle>
+      <mat-button-toggle value="rejected">Rejeitado</mat-button-toggle>
+    </mat-button-toggle-group>
+
     <!-- Progress bar (above card) -->
     <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 
@@ -47,7 +57,7 @@ import { Product, Role } from '../../../../core/models';
         </div>
 
         <!-- Table -->
-        <table mat-table [dataSource]="products"
+        <table mat-table [dataSource]="filtered"
                *ngIf="!loading && !loadError"
                class="full-width">
 
@@ -129,9 +139,11 @@ import { Product, Role } from '../../../../core/models';
   `,
 })
 export class ProductsListComponent implements OnInit {
-  products: Product[] = [];
-  loading = false;
-  loadError = false;
+  products:     Product[] = [];
+  filtered:     Product[] = [];
+  filterStatus  = '';
+  loading       = false;
+  loadError     = false;
   role: Role | string = '';
   cols = ['cd', 'name', 'category', 'status', 'company', 'actions'];
 
@@ -142,11 +154,18 @@ export class ProductsListComponent implements OnInit {
     this.reload();
   }
 
+  applyFilter(): void {
+    this.filtered = this.filterStatus
+      ? this.products.filter((p) => p.status === this.filterStatus)
+      : this.products;
+  }
+
   reload(): void {
     this.loading = true;
     this.loadError = false;
-    this.svc.getAll().subscribe({
-      next: (d) => { this.products = d; this.loading = false; },
+    const obs$ = this.role === 'producer' ? this.svc.getMyProducts() : this.svc.getAll();
+    obs$.subscribe({
+      next: (d) => { this.products = d; this.applyFilter(); this.loading = false; },
       error: () => { this.loading = false; this.loadError = true; },
     });
   }

@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { Order } from '../models';
+import { Order, Shipment } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
@@ -42,11 +42,18 @@ export class OrderService {
     return this.http.post<Order>(`${this.base}/${id}/block`, { reason });
   }
 
-  cancel(id: string): Observable<Order> {
-    return this.http.post<Order>(`${this.base}/${id}/cancel`, {});
+  cancel(id: string, reason: string): Observable<Order> {
+    return this.http.post<Order>(`${this.base}/${id}/cancel`, { reason });
   }
 
-  escalateToState(id: string): Observable<Order> {
-    return this.http.post<Order>(`${this.base}/${id}/escalate-to-state`, {});
+  escalateToState(id: string, reason: string, urgencyLevel?: string): Observable<{ message?: string }> {
+    return this.http.post<{ message?: string }>(`${this.base}/${id}/escalate-to-state`, {
+      reason,
+      ...(urgencyLevel ? { urgencyLevel } : {}),
+    });
+  }
+
+  getShipmentByOrderId(orderId: string): Observable<Shipment> {
+    return this.http.get<Shipment>(`${environment.apiUrl}/shipments/order/${orderId}`);
   }
 }

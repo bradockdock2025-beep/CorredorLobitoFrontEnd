@@ -171,8 +171,7 @@ interface CartItem { productId: string; productName: string; category: string; q
                   <tbody>
                     <tr *ngFor="let l of createdOrder.lines">
                       <td>
-                        <div>{{ l.product?.name ?? l.productId }}</div>
-                        <div class="text-sm text-muted">{{ l.product?.name ? '' : l.productId }}</div>
+                        <div>{{ l.product?.name ?? '—' }}</div>
                       </td>
                       <td>{{ l.qty }}</td>
                       <td class="nowrap">{{ toNumber(l.unitPrice) | number:'1.2-2' }} {{ createdOrder.currency }}</td>

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { ShipmentService } from '../../../core/services/shipment.service';
 import { AuthService }     from '../../../core/services/auth.service';
+import { ShipmentStatus }  from '../../../core/models';
 
 @Component({
   selector: 'app-customs-dashboard',
@@ -23,21 +24,21 @@ import { AuthService }     from '../../../core/services/auth.service';
     <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 
     <div class="stats-grid stats-grid-3">
-      <mat-card class="stat-card" (click)="router.navigate(['/dashboard/customs/shipments'])">
+      <mat-card class="stat-card" (click)="goToShipments('at_border')">
         <mat-icon class="stat-card-icon">border_style</mat-icon>
         <div class="stat-label">Na Fronteira (pendentes)</div>
         <div class="stat-number">{{ borderCount }}</div>
         <div class="stat-action"><mat-icon>arrow_forward</mat-icon> Ver pendentes</div>
       </mat-card>
 
-      <mat-card class="stat-card" (click)="router.navigate(['/dashboard/customs/shipments'])">
+      <mat-card class="stat-card" (click)="goToShipments('customs_approved')">
         <mat-icon class="stat-card-icon">check_circle</mat-icon>
         <div class="stat-label">Aprovados Alfândega</div>
         <div class="stat-number">{{ approvedCount }}</div>
         <div class="stat-action"><mat-icon>arrow_forward</mat-icon> Ver aprovados</div>
       </mat-card>
 
-      <mat-card class="stat-card" (click)="router.navigate(['/dashboard/customs/shipments'])">
+      <mat-card class="stat-card" (click)="goToShipments('held')">
         <mat-icon class="stat-card-icon">pause_circle</mat-icon>
         <div class="stat-label">Retidos</div>
         <div class="stat-number">{{ heldCount }}</div>
@@ -63,5 +64,9 @@ export class CustomsDashboardComponent implements OnInit {
       },
       error: () => { this.loading = false; },
     });
+  }
+
+  goToShipments(status: ShipmentStatus): void {
+    this.router.navigate(['/dashboard/customs/shipments'], { queryParams: { status } });
   }
 }

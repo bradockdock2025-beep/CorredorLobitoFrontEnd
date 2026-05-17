@@ -132,7 +132,7 @@ export class StateDashboardComponent implements OnInit {
     }).subscribe({
       next: (d) => {
         this.pending            = d.companies.filter((c) => ['pending','under_review'].includes(c.licenseStatus)).length;
-        this.pendingProducts    = d.products.filter((p) => p.status === 'pending_review').length;
+        this.pendingProducts    = d.products.filter((p) => p.status === 'staff_validated').length;
         this.submittedProposals = d.proposals.filter((p) => p.status === 'submitted').length;
         this.blockedOrders      = d.orders.filter((o) => o.status === 'blocked').length;
         this.recentLogs         = d.logs.slice(0, 5);

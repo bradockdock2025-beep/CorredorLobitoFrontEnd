@@ -4,7 +4,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { OrderService } from '../../../../core/services/order.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { Order, Role, toNumber } from '../../../../core/models';
+import { PdfService } from '../../../../core/services/pdf.service';
+import { Order, Shipment, ShipmentStatus, TrackingEvent, Role, toNumber } from '../../../../core/models';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
@@ -96,8 +97,90 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
               <mat-icon>cancel</mat-icon> Cancelar Pedido
             </button>
           </ng-container>
+
+          <!-- STAFF — escalar ao STATE -->
+          <ng-container *ngIf="role === 'staff' && !['cancelled'].includes(order.status)">
+            <button mat-stroked-button (click)="escalate()">
+              <mat-icon>upload</mat-icon> Escalar ao STATE
+            </button>
+          </ng-container>
+
+          <!-- PDFs — fatura + recibo quando pago -->
+          <ng-container *ngIf="order.status === 'paid'">
+            <button mat-stroked-button (click)="downloadInvoice()" [disabled]="pdfLoading">
+              <mat-spinner diameter="16" *ngIf="pdfLoading === 'invoice'"></mat-spinner>
+              <mat-icon *ngIf="pdfLoading !== 'invoice'">receipt_long</mat-icon>
+              Fatura PDF
+            </button>
+            <button mat-stroked-button (click)="downloadReceipt()" [disabled]="pdfLoading">
+              <mat-spinner diameter="16" *ngIf="pdfLoading === 'receipt'"></mat-spinner>
+              <mat-icon *ngIf="pdfLoading !== 'receipt'">payments</mat-icon>
+              Recibo PDF
+            </button>
+          </ng-container>
+
+          <!-- BUYER — rastrear embarque -->
+          <button mat-stroked-button *ngIf="role === 'buyer' && order.status === 'paid'"
+                  (click)="toggleShipmentTracking()">
+            <mat-icon>local_shipping</mat-icon>
+            {{ showShipment ? 'Ocultar Tracking' : 'Ver Embarque' }}
+          </button>
+
         </div>
       </div>
+
+      <!-- ── Tracking do embarque (BUYER) ──────────────────────────────── -->
+      <mat-card class="mt-md" *ngIf="role === 'buyer' && showShipment">
+        <mat-card-content class="card-section">
+          <p class="card-section-title">Tracking do Embarque</p>
+
+          <mat-progress-bar mode="indeterminate" *ngIf="shipmentLoading"></mat-progress-bar>
+
+          <div class="shipment-no-data" *ngIf="!shipmentLoading && !shipment && shipmentError">
+            <mat-icon>info_outline</mat-icon>
+            <span>{{ shipmentError }}</span>
+          </div>
+
+          <ng-container *ngIf="shipment">
+            <!-- Banner de estado -->
+            <div class="tracking-status-banner" [class]="'ts-' + shipment.status">
+              <mat-icon>{{ trackingStatusIcon(shipment.status) }}</mat-icon>
+              <div>
+                <strong>{{ shipment.cd }}</strong>
+                <span>{{ trackingMessage(shipment.status) }}</span>
+              </div>
+            </div>
+
+            <div class="tracking-meta">
+              <span><mat-icon class="meta-icon">place</mat-icon> {{ shipment.origin }}</span>
+              <mat-icon>arrow_forward</mat-icon>
+              <span>{{ shipment.destination }}</span>
+              <span *ngIf="shipment.eta" class="eta-text">
+                · ETA: {{ shipment.eta | date:'dd/MM/yyyy' }}
+              </span>
+            </div>
+
+            <!-- Timeline de eventos (mais recente primeiro) -->
+            <div class="tracking-timeline" *ngIf="sortedEvents().length > 0">
+              <div class="tl-event" *ngFor="let ev of sortedEvents()">
+                <div class="tl-event-dot">
+                  <app-status-badge [status]="ev.status"></app-status-badge>
+                </div>
+                <div class="tl-event-body">
+                  <span class="tl-event-loc">{{ ev.location }}</span>
+                  <span class="tl-event-time">{{ ev.timestamp | date:'dd/MM/yyyy HH:mm' }}</span>
+                  <span class="tl-event-notes" *ngIf="ev.notes">{{ ev.notes }}</span>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-muted text-sm" *ngIf="sortedEvents().length === 0">
+              Sem eventos de tracking registados ainda.
+            </p>
+          </ng-container>
+
+        </mat-card-content>
+      </mat-card>
 
       <!-- ── Info card ───────────────────────────────────────────────── -->
       <mat-card>
@@ -141,7 +224,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
 
             <ng-container matColumnDef="product">
               <th mat-header-cell *matHeaderCellDef>Produto</th>
-              <td mat-cell *matCellDef="let l">{{ l.product?.name ?? l.productId }}</td>
+              <td mat-cell *matCellDef="let l">{{ l.product?.name ?? '—' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="qty">
@@ -254,26 +337,77 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
       animation: shimmer 1.4s infinite linear;
       border-radius: 4px;
     }
+
+    /* Tracking do embarque */
+    .tracking-status-banner {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;
+      font-size: 14px;
+    }
+    .tracking-status-banner mat-icon { font-size: 24px; width: 24px; height: 24px; flex-shrink: 0; }
+    .tracking-status-banner > div { display: flex; flex-direction: column; gap: 2px; }
+    .tracking-status-banner strong { font-size: 14px; font-weight: 700; }
+    .tracking-status-banner span   { font-size: 13px; }
+
+    .ts-created, .ts-in_transit { background: #e3f2fd; color: #1565c0; }
+    .ts-at_border               { background: #fff8e1; color: #f57f17; }
+    .ts-customs_approved        { background: #e8f5e9; color: #2e7d32; }
+    .ts-customs_rejected        { background: #fce8e6; color: #c5221f; }
+    .ts-held                    { background: #fff3e0; color: #e65100; }
+    .ts-delivered               { background: #e8f5e9; color: #1b5e20; }
+
+    .tracking-meta {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: #555; margin-bottom: 16px;
+    }
+    .tracking-meta mat-icon { font-size: 16px; width: 16px; height: 16px; color: #888; }
+    .meta-icon { font-size: 14px !important; width: 14px !important; height: 14px !important; }
+    .eta-text { color: #888; }
+
+    .tracking-timeline { display: flex; flex-direction: column; gap: 0; }
+
+    .tl-event {
+      display: flex; gap: 12px; padding: 10px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .tl-event:last-child { border-bottom: none; }
+    .tl-event-dot { padding-top: 2px; flex-shrink: 0; }
+    .tl-event-body { display: flex; flex-direction: column; gap: 2px; }
+    .tl-event-loc   { font-size: 14px; font-weight: 600; color: #333; }
+    .tl-event-time  { font-size: 11px; color: #aaa; }
+    .tl-event-notes { font-size: 12px; color: #777; font-style: italic; }
+
+    .shipment-no-data {
+      display: flex; align-items: center; gap: 8px;
+      color: #888; font-size: 13px; padding: 12px 0;
+    }
   `],
 })
 export class OrderDetailComponent implements OnInit {
-  order: Order | null = null;
-  loading = false;
-  loadError = false;
+  order:      Order | null = null;
+  shipment:   Shipment | null = null;
+  loading        = false;
+  loadError      = false;
+  shipmentLoading = false;
+  shipmentError   = '';
+  showShipment    = false;
+  pdfLoading: 'invoice' | 'receipt' | null = null;
   role: Role | null = null;
   lineCols = ['product', 'qty', 'unitPrice', 'taxRate', 'lineTotal'];
   readonly toNumber = toNumber;
 
   get hasActions(): boolean {
     if (!this.order) return false;
-    if (this.role === 'buyer'  && this.order.status === 'draft') return true;
+    if (this.role === 'buyer'  && ['draft','paid'].includes(this.order.status)) return true;
     if (this.role === 'state'  && ['paid','blocked'].includes(this.order.status)) return true;
+    if (this.role === 'staff'  && this.order.status !== 'cancelled') return true;
     return false;
   }
 
   constructor(
     private route: ActivatedRoute, public router: Router,
     private svc: OrderService, private auth: AuthService,
+    private pdfSvc: PdfService,
     private dialog: MatDialog, private snack: MatSnackBar,
   ) {}
 
@@ -293,6 +427,24 @@ export class OrderDetailComponent implements OnInit {
   }
 
   back(): void { this.router.navigate([`/dashboard/${this.role}/orders`]); }
+
+  downloadInvoice(): void {
+    if (!this.order) return;
+    this.pdfLoading = 'invoice';
+    this.pdfSvc.getInvoicePdf(this.order.id).subscribe({
+      next: (res) => { this.pdfLoading = null; this.pdfSvc.openPdf(res); },
+      error: (e) => { this.pdfLoading = null; this.snack.open(e?.error?.message ?? 'Fatura não disponível.', 'Fechar', { duration: 3000 }); },
+    });
+  }
+
+  downloadReceipt(): void {
+    if (!this.order) return;
+    this.pdfLoading = 'receipt';
+    this.pdfSvc.getReceiptPdf(this.order.id).subscribe({
+      next: (res) => { this.pdfLoading = null; this.pdfSvc.openPdf(res); },
+      error: (e) => { this.pdfLoading = null; this.snack.open(e?.error?.message ?? 'Recibo não disponível.', 'Fechar', { duration: 3000 }); },
+    });
+  }
 
   private open(data: ConfirmDialogData) {
     return this.dialog.open<ConfirmDialogComponent, ConfirmDialogData>(ConfirmDialogComponent, { data });
@@ -327,14 +479,89 @@ export class OrderDetailComponent implements OnInit {
   }
 
   cancel(): void {
-    this.open({ title: 'Cancelar Pedido', message: 'Cancelar este pedido definitivamente?', confirmText: 'Cancelar' })
-      .afterClosed().subscribe((r) => {
-        if (!r) return;
-        this.loading = true;
-        this.svc.cancel(this.order!.id).subscribe({
-          next: (o) => { this.order = o; this.loading = false; this.snack.open('Pedido cancelado', 'Fechar', { duration: 3000 }); },
-          error: (e) => { this.loading = false; this.snack.open(e?.error?.message ?? 'Erro', 'Fechar', { duration: 3000 }); },
-        });
+    this.open({
+      title: 'Cancelar Pedido',
+      message: 'Esta acção é irreversível. Indique o motivo:',
+      inputLabel: 'Motivo do cancelamento',
+      inputRequired: true,
+      confirmText: 'Cancelar Pedido',
+    }).afterClosed().subscribe((reason: string) => {
+      if (!reason) return;
+      this.loading = true;
+      this.svc.cancel(this.order!.id, reason).subscribe({
+        next: (o) => { this.order = o; this.loading = false; this.snack.open('Pedido cancelado.', 'Fechar', { duration: 3000 }); },
+        error: (e) => { this.loading = false; this.snack.open(e?.error?.message ?? 'Erro', 'Fechar', { duration: 3000 }); },
       });
+    });
+  }
+
+  escalate(): void {
+    this.open({
+      title: 'Escalar ao STATE',
+      message: 'Descreva o motivo da escalada:',
+      inputLabel: 'Motivo *',
+      inputRequired: true,
+      confirmText: 'Escalar',
+    }).afterClosed().subscribe((reason: string) => {
+      if (!reason) return;
+      this.loading = true;
+      this.svc.escalateToState(this.order!.id, reason).subscribe({
+        next: () => { this.loading = false; this.snack.open('Pedido escalado ao STATE. Audit log registado.', 'Fechar', { duration: 4000 }); },
+        error: (e) => { this.loading = false; this.snack.open(e?.error?.message ?? 'Erro ao escalar.', 'Fechar', { duration: 3000 }); },
+      });
+    });
+  }
+
+  toggleShipmentTracking(): void {
+    this.showShipment = !this.showShipment;
+    if (this.showShipment && !this.shipment && !this.shipmentLoading) {
+      this.loadShipment();
+    }
+  }
+
+  loadShipment(): void {
+    if (!this.order) return;
+    this.shipmentLoading = true;
+    this.shipmentError   = '';
+    this.svc.getShipmentByOrderId(this.order.id).subscribe({
+      next: (s) => { this.shipment = s; this.shipmentLoading = false; },
+      error: (e) => {
+        this.shipmentLoading = false;
+        if (e.status === 404) {
+          this.shipmentError = 'Ainda não existe embarque associado a este pedido.';
+        } else {
+          this.shipmentError = e?.error?.message ?? 'Erro ao carregar embarque.';
+        }
+      },
+    });
+  }
+
+  sortedEvents(): TrackingEvent[] {
+    if (!this.shipment?.trackingEvents) return [];
+    return [...this.shipment.trackingEvents].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
+  }
+
+  trackingMessage(status: ShipmentStatus): string {
+    const m: Partial<Record<ShipmentStatus, string>> = {
+      created:          'Embarque criado. O operador está a preparar a carga.',
+      in_transit:       'Carga em trânsito para a fronteira.',
+      at_border:        'Carga na fronteira — aguarda validação aduaneira.',
+      customs_approved: 'Aprovado pela alfândega. Carga a caminho do destino.',
+      customs_rejected: 'Rejeitado pela alfândega. Operador a corrigir documentação.',
+      held:             'Carga retida para inspecção especial.',
+      delivered:        'Carga entregue no destino.',
+    };
+    return m[status] ?? status;
+  }
+
+  trackingStatusIcon(status: ShipmentStatus): string {
+    const m: Partial<Record<ShipmentStatus, string>> = {
+      created: 'inventory', in_transit: 'local_shipping',
+      at_border: 'hourglass_empty', customs_approved: 'verified',
+      customs_rejected: 'cancel', held: 'warning', delivered: 'check_circle',
+    };
+    return m[status] ?? 'local_shipping';
   }
 }

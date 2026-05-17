@@ -42,13 +42,14 @@ const NAV_CONFIG: Record<Role, NavEntry[]> = {
   ],
   staff: [
     { type: 'link', label: 'Dashboard', icon: 'dashboard', route: '/dashboard/staff' },
-    { type: 'group', title: 'GESTÃO', expanded: true, items: [
-      { label: 'Utilizadores', icon: 'people',        route: '/dashboard/staff/users' },
-      { label: 'Empresas',     icon: 'business',      route: '/dashboard/staff/companies' },
+    { type: 'group', title: 'VALIDAÇÃO', expanded: true, items: [
+      { label: 'Empresas',  icon: 'business',    route: '/dashboard/staff/companies' },
+      { label: 'Produtos',  icon: 'inventory_2', route: '/dashboard/staff/products' },
     ]},
-    { type: 'group', title: 'OPERAÇÕES', expanded: true, items: [
-      { label: 'Pedidos',     icon: 'receipt_long', route: '/dashboard/staff/orders' },
-      { label: 'Transacções', icon: 'payments',      route: '/dashboard/staff/transactions' },
+    { type: 'group', title: 'GESTÃO', expanded: true, items: [
+      { label: 'Utilizadores', icon: 'people',       route: '/dashboard/staff/users' },
+      { label: 'Pedidos',      icon: 'receipt_long', route: '/dashboard/staff/orders' },
+      { label: 'Transacções',  icon: 'payments',     route: '/dashboard/staff/transactions' },
     ]},
     { type: 'group', title: 'ANALYTICS', expanded: false, items: [
       { label: 'Visão Geral', icon: 'bar_chart',      route: '/dashboard/staff/analytics' },
@@ -140,6 +141,8 @@ const NAV_CONFIG: Record<Role, NavEntry[]> = {
         </div>
       </div>
 
+      <app-theme-switcher></app-theme-switcher>
+
       <mat-divider></mat-divider>
 
       <!-- ── ZONA 2 — Navegação ──────────────────────────────────── -->
@@ -210,7 +213,7 @@ const NAV_CONFIG: Record<Role, NavEntry[]> = {
       width: 64px;
       height: 64px;
       border-radius: 50%;
-      background: #1a1a1a;
+      background: var(--primary);
       color: #fff;
       display: flex;
       align-items: center;
@@ -224,7 +227,7 @@ const NAV_CONFIG: Record<Role, NavEntry[]> = {
     .profile-name {
       font-size: 13px;
       font-weight: 600;
-      color: #1a1a1a;
+      color: var(--primary);
       text-align: center;
       max-width: 200px;
       overflow: hidden;
@@ -326,7 +329,7 @@ const NAV_CONFIG: Record<Role, NavEntry[]> = {
     }
     .nav-item:hover:not(.active) { background: #f5f5f5; }
     .nav-item.active {
-      background: #1a1a1a;
+      background: var(--primary);
       color: #fff;
     }
 
@@ -344,7 +347,7 @@ const NAV_CONFIG: Record<Role, NavEntry[]> = {
     .nav-label {
       font-size: 14px;
       font-weight: 400;
-      color: #1a1a1a;
+      color: var(--primary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -352,7 +355,7 @@ const NAV_CONFIG: Record<Role, NavEntry[]> = {
       transition: color 0.12s;
     }
     .nav-item.active .nav-label { color: #fff !important; font-weight: 500; }
-    .nav-item:hover:not(.active) .nav-label { color: #1a1a1a; }
+    .nav-item:hover:not(.active) .nav-label { color: var(--primary); }
 
     /* Sub-items */
     .nav-subitem { padding-left: 40px; }

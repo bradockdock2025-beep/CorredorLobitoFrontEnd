@@ -131,7 +131,7 @@ import { ComplianceScore, RiskLevel } from '../../../core/models';
     .score-circle {
       width: 120px; height: 120px; border-radius: 50%;
       display: flex; flex-direction: column; align-items:center; justify-content:center;
-      background: #1a1a1a; color: #fff; flex-shrink: 0;
+      background: var(--primary); color: #fff; flex-shrink: 0;
     }
     .score-circle.risk-medium { background: #424242; }
     .score-circle.risk-high   { background: #616161; }
@@ -150,7 +150,7 @@ import { ComplianceScore, RiskLevel } from '../../../core/models';
       border-radius: 12px; font-size: 11px; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.8px;
     }
-    .risk-badge-low      { background: #1a1a1a; color: #fff; }
+    .risk-badge-low      { background: var(--primary); color: #fff; }
     .risk-badge-medium   { background: #424242; color: #fff; }
     .risk-badge-high     { background: #616161; color: #fff; }
     .risk-badge-critical { background: #9e9e9e; color: #fff; }

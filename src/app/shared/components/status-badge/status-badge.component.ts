@@ -54,8 +54,8 @@ const CONFIG: Record<string, BadgeConfig> = {
       letter-spacing: 0.5px;
       white-space: nowrap;
     }
-    .chip-solid   { background: #1a1a1a; color: #fff; border: none; }
-    .chip-outline { background: transparent; color: #1a1a1a; border: 1.5px solid #1a1a1a; }
+    .chip-solid   { background: var(--primary); color: #fff; border: none; }
+    .chip-outline { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
     .chip-gray    { background: #e0e0e0; color: #424242; border: none; }
   `],
 })

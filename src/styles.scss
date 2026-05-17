@@ -16,7 +16,8 @@ $theme: mat.define-light-theme((
 // ── Design Tokens ────────────────────────────────────────────────────
 :root {
   // Cores
-  --black      : #1a1a1a;
+  --primary    : #1a3c5e;
+  --black      : var(--primary);
   --white      : #ffffff;
   --gray-100   : #f5f5f5;
   --gray-200   : #eeeeee;
@@ -70,35 +71,147 @@ body {
 
 a { color: inherit; text-decoration: none; }
 
-// ── Material overrides ───────────────────────────────────────────────
-// Botões primários → preto
-.mat-mdc-raised-button.mat-primary {
-  background-color: var(--black) !important;
-  color: var(--white) !important;
-}
-.mat-mdc-raised-button.mat-primary:hover {
-  background-color: var(--gray-700) !important;
-}
-.mat-mdc-outlined-button {
-  border-color: var(--black) !important;
-  color: var(--black) !important;
-}
-.mat-mdc-button { color: var(--black) !important; }
+// ══════════════════════════════════════════════════════════════════════
+// Material overrides — todos os componentes usam var(--primary)
+// Tokens MDC sobrescritos para suportar troca de tema em runtime
+// ══════════════════════════════════════════════════════════════════════
 
-// Snackbar → preto
-.snack-success .mdc-snackbar__surface,
-.snack-error   .mdc-snackbar__surface,
-.mat-mdc-snack-bar-container .mdc-snackbar__surface {
-  background-color: var(--black) !important;
-  color: var(--white) !important;
+// ── Raised button (mat-raised-button color="primary") ─────────────────
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-raised-button[color="primary"] {
+  --mdc-protected-button-container-color : var(--primary) !important;
+  --mdc-protected-button-label-text-color: #fff !important;
+  background-color: var(--primary) !important;
+  color: #fff !important;
+}
+.mat-mdc-raised-button.mat-primary:hover,
+.mat-mdc-raised-button[color="primary"]:hover {
+  filter: brightness(0.88);
 }
 
-// Progress bar → preto
+// ── Flat button (mat-flat-button color="primary") ─────────────────────
+.mat-mdc-unelevated-button.mat-primary,
+.mat-mdc-unelevated-button[color="primary"] {
+  --mdc-filled-button-container-color : var(--primary) !important;
+  --mdc-filled-button-label-text-color: #fff !important;
+  background-color: var(--primary) !important;
+  color: #fff !important;
+}
+
+// ── Stroked button (mat-stroked-button) ───────────────────────────────
+.mat-mdc-outlined-button,
+.mat-mdc-outlined-button.mat-primary,
+.mat-mdc-outlined-button[color="primary"] {
+  --mdc-outlined-button-label-text-color: var(--primary) !important;
+  --mdc-outlined-button-outline-color   : var(--primary) !important;
+  color        : var(--primary) !important;
+  border-color : var(--primary) !important;
+}
+
+// ── Text button (mat-button) ──────────────────────────────────────────
+.mat-mdc-button,
+.mat-mdc-button.mat-primary,
+.mat-mdc-button[color="primary"] {
+  --mdc-text-button-label-text-color: var(--primary) !important;
+  color: var(--primary) !important;
+}
+
+// ── Icon button (mat-icon-button color="primary") ─────────────────────
+.mat-mdc-icon-button.mat-primary,
+.mat-mdc-icon-button[color="primary"] {
+  --mdc-icon-button-icon-color: var(--primary) !important;
+  color: var(--primary) !important;
+}
+
+// ── FAB ───────────────────────────────────────────────────────────────
+.mat-mdc-fab.mat-primary,
+.mat-mdc-mini-fab.mat-primary {
+  --mdc-fab-container-color: var(--primary) !important;
+  background-color: var(--primary) !important;
+  color: #fff !important;
+}
+
+// ── Progress bar ──────────────────────────────────────────────────────
 .mat-mdc-progress-bar .mdc-linear-progress__bar-inner {
-  border-color: var(--black) !important;
+  border-color: var(--primary) !important;
 }
 .mat-mdc-progress-bar .mdc-linear-progress__buffer-bar {
   background-color: var(--gray-300) !important;
+}
+
+// ── Progress spinner ──────────────────────────────────────────────────
+.mat-mdc-progress-spinner circle,
+.mat-progress-spinner circle {
+  stroke: var(--primary) !important;
+}
+
+// ── Stepper ───────────────────────────────────────────────────────────
+.mat-step-header .mat-step-icon-selected,
+.mat-step-header .mat-step-icon-state-done,
+.mat-step-header .mat-step-icon-state-edit {
+  background-color: var(--primary) !important;
+  color: #fff !important;
+}
+
+// ── Slide toggle ──────────────────────────────────────────────────────
+.mat-mdc-slide-toggle.mat-primary,
+.mat-mdc-slide-toggle[color="primary"] {
+  --mdc-switch-selected-track-color         : var(--primary) !important;
+  --mdc-switch-selected-handle-color        : var(--primary) !important;
+  --mdc-switch-selected-focus-track-color   : var(--primary) !important;
+  --mdc-switch-selected-hover-track-color   : var(--primary) !important;
+  --mdc-switch-selected-pressed-track-color : var(--primary) !important;
+  --mdc-switch-selected-focus-handle-color  : var(--primary) !important;
+  --mdc-switch-selected-hover-handle-color  : var(--primary) !important;
+  --mdc-switch-selected-pressed-handle-color: var(--primary) !important;
+}
+
+// ── Checkbox ──────────────────────────────────────────────────────────
+.mat-mdc-checkbox.mat-primary,
+.mat-mdc-checkbox[color="primary"] {
+  --mdc-checkbox-selected-icon-color          : var(--primary) !important;
+  --mdc-checkbox-selected-focus-icon-color    : var(--primary) !important;
+  --mdc-checkbox-selected-hover-icon-color    : var(--primary) !important;
+  --mdc-checkbox-selected-pressed-icon-color  : var(--primary) !important;
+  --mdc-checkbox-selected-checkmark-color     : #fff !important;
+}
+
+// ── Radio ─────────────────────────────────────────────────────────────
+.mat-mdc-radio-button.mat-primary,
+.mat-mdc-radio-button[color="primary"] {
+  --mdc-radio-selected-icon-color        : var(--primary) !important;
+  --mdc-radio-selected-focus-icon-color  : var(--primary) !important;
+  --mdc-radio-selected-hover-icon-color  : var(--primary) !important;
+  --mdc-radio-selected-pressed-icon-color: var(--primary) !important;
+}
+
+// ── Button toggle ─────────────────────────────────────────────────────
+.mat-button-toggle-checked {
+  background-color: var(--primary) !important;
+  color: #fff !important;
+}
+.mat-button-toggle-checked .mat-button-toggle-label-content { color: #fff !important; }
+
+// ── Select panel accent ───────────────────────────────────────────────
+.mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+  color: var(--primary) !important;
+}
+.mat-primary .mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) .mdc-list-item__primary-text {
+  color: var(--primary) !important;
+}
+
+// ── Snackbar ──────────────────────────────────────────────────────────
+.snack-success .mdc-snackbar__surface,
+.snack-error   .mdc-snackbar__surface,
+.mat-mdc-snack-bar-container .mdc-snackbar__surface {
+  background-color: var(--primary) !important;
+  color: #fff !important;
+}
+
+// ── Topbar ────────────────────────────────────────────────────────────
+mat-toolbar.topbar {
+  background: var(--primary) !important;
+  color: #fff !important;
 }
 
 // Cards
@@ -575,8 +688,8 @@ tr[mat-row]:hover {
 
 // ── Topbar ───────────────────────────────────────────────────────────
 mat-toolbar.topbar {
-  background: var(--black) !important;
-  color: var(--white) !important;
+  background: var(--primary) !important;
+  color: #fff !important;
   height: var(--topbar-h) !important;
   min-height: var(--topbar-h) !important;
   position: fixed !important;

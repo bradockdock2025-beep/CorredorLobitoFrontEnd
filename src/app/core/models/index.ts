@@ -108,32 +108,120 @@ export type ShipmentStatus =
 export type CompanyCountry =
   | 'angola' | 'zambia' | 'drc' | 'tanzania' | 'zimbabwe' | 'mozambique';
 
+export type CompanyType =
+  | 'importer' | 'exporter' | 'mixed' | 'producer' | 'logistics';
+
+export type TicketStatus =
+  | 'open' | 'in_progress' | 'resolved' | 'escalated' | 'closed';
+
+export type TicketType =
+  | 'technical' | 'licensing' | 'billing' | 'compliance' | 'other';
+
+export type DocumentStatus = 'pending' | 'accepted' | 'rejected';
+
+export type DocumentEntityType = 'company' | 'product' | 'shipment' | 'order' | 'report';
+
+export type DocumentType =
+  | 'certidao_comercial' | 'certidao_fiscal' | 'alvara_actividade'
+  | 'identificacao_representante' | 'comprovativo_morada'
+  | 'estatutos' | 'licenca_importacao_exportacao'
+  | 'ficha_tecnica_produto' | 'certificado_qualidade' | 'certificado_origem_produto'
+  | 'fatura_comercial_embarque' | 'manifesto_carga' | 'certificado_origem_embarque'
+  | 'guia_transporte' | 'apolice_seguro' | 'declaracao_aduaneira'
+  | 'outro';
+
+export interface Document {
+  id:               string;
+  cd:               string;
+  entityType:       DocumentEntityType;
+  entityId:         string;
+  type:             DocumentType;
+  name:             string;
+  fileName:         string;
+  mimeType:         string;
+  sizeBytes:        number;
+  storageUrl:       string;
+  storagePath:      string;
+  uploadedById:     string;
+  status:           DocumentStatus;
+  rejectedReason:   string | null;
+  validatedById:    string | null;
+  validatedAt:      string | null;
+  createdAt:        string;
+  updatedAt?:       string;
+  uploadedBy?:      { id: string; fullName: string; role: string };
+  validatedBy?:     { id: string; fullName: string; role: string } | null;
+}
+
+export interface PdfDownloadResponse {
+  signedUrl: string;
+  fileName:  string;
+  expiresIn: number;
+}
+
 export interface AuthUser {
-  id:        string;
-  email:     string;
-  role:      Role;
-  fullName:  string;
-  companyId?: string | null;
+  id:               string;
+  cd?:              string;
+  email:            string;
+  role:             Role;
+  fullName:         string;
+  phone?:           string | null;
+  status?:          string;
+  companyId?:       string | null;
+  twoFactorEnabled?: boolean;
+  lastLoginAt?:     string | null;
+  company?:         { id: string; name: string; licenseStatus: string } | null;
+}
+
+export interface DocumentationValidation {
+  validatedAt?:  string;
+  validatedBy?:  string;
+  result:        'approved' | 'rejected';
+  notes:         string;
 }
 
 export interface Company {
-  id:                 string;
-  cd:                 string;
-  name:               string;
-  country:            CompanyCountry;
-  contactEmail:       string;
-  contactPhone:       string | null;
-  address:            string | null;
-  licenseStatus:      LicenseStatus;
-  licenseNumber:      string | null;
-  licenseExpiresAt:   string | null;
-  rejectionReason:    string | null;
-  suspensionReason:   string | null;
-  validationNotes:    string | null;
-  approvedByStateId:  string | null;
-  validatedByStaffId: string | null;
-  createdAt:          string;
-  updatedAt:          string;
+  id:                       string;
+  cd:                       string;
+  name:                     string;
+  country:                  CompanyCountry;
+  companyType:              CompanyType | null;
+  contactEmail:             string;
+  contactPhone:             string | null;
+  address:                  string | null;
+  licenseStatus:            LicenseStatus;
+  licenseNumber:            string | null;
+  licenseExpiresAt:         string | null;
+  licenseDocumentUrl:       string | null;
+  verifiedByState:          boolean;
+  documentationValidation:  DocumentationValidation | null;
+  rejectionReason:          string | null;
+  suspensionReason:         string | null;
+  validationNotes:          string | null;
+  approvedByStateId:        string | null;
+  validatedByStaffId:       string | null;
+  createdAt:                string;
+  updatedAt:                string;
+  documents?:               Document[];
+}
+
+export interface SupportTicket {
+  id:                string;
+  cd:                string;
+  userId:            string;
+  type:              TicketType;
+  status:            TicketStatus;
+  subject:           string;
+  content:           Record<string, unknown>;
+  resolution:        string | null;
+  resolvedByStaffId: string | null;
+  escalatedToState:  boolean;
+  escalatedAt:       string | null;
+  resolvedAt:        string | null;
+  closedAt:          string | null;
+  createdAt:         string;
+  updatedAt?:        string;
+  user?:             { id: string; fullName: string; email: string; role: string };
 }
 
 export interface Product {
@@ -145,12 +233,15 @@ export interface Product {
   producerId:      string;
   companyId:       string;
   status:          ProductStatus;
+  metadata:        Record<string, unknown> | null;
+  certificateUrl:  string | null;
   rejectionReason: string | null;
   publishedAt:     string | null;
   createdAt:       string;
   updatedAt:       string;
   producer?:       { id: string; fullName: string };
   company?:        { id: string; name: string };
+  documents?:      Document[];
 }
 
 export interface PriceProposalSnapshot {
@@ -247,19 +338,21 @@ export interface Shipment {
   holdReason:      string | null;
   createdAt:       string;
   updatedAt:       string;
-  operator?:       { id: string; fullName: string };
+  operator?:        { id: string; fullName: string };
   customsDispatch?: CustomsDispatch | null;
+  documents?:       Document[];
 }
 
 export interface CustomsDispatch {
-  id:              string;
-  cd:              string;
-  shipmentId:      string;
-  dispatcherId:    string;
-  status:          'pending' | 'approved' | 'rejected' | 'held';
-  notes:           string | null;
-  rejectionReason: string | null;
-  validatedAt:     string | null;
+  id:                  string;
+  cd:                  string;
+  shipmentId:          string;
+  dispatcherId:        string;
+  status:              'pending' | 'approved' | 'rejected' | 'held';
+  notes:               string | null;
+  rejectionReason:     string | null;
+  validatedAt:         string | null;
+  dispatchDocumentUrl: string | null;
 }
 
 export interface Tax {
@@ -302,6 +395,8 @@ export interface Transaction {
   blockedById:    string | null;
   blockedReason:  string | null;
   cancelledAt:    string | null;
+  invoiceUrl:     string | null;
+  receiptUrl:     string | null;
   order?:         { id: string; cd: string; buyerId: string };
 }
 

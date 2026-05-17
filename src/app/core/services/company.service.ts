@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { Company, CompanyCountry } from '../models';
+import { Company, CompanyCountry, CompanyType } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class CompanyService {
@@ -20,17 +20,19 @@ export class CompanyService {
   }
 
   create(data: {
-    name: string;
-    country: CompanyCountry;
-    contactEmail: string;
+    name:          string;
+    country:       CompanyCountry;
+    contactEmail:  string;
+    companyType?:  CompanyType;
     contactPhone?: string;
-    address?: string;
+    address?:      string;
   }): Observable<Company> {
     return this.http.post<Company>(this.base, data);
   }
 
   update(id: string, data: {
     name?:         string;
+    companyType?:  CompanyType;
     contactEmail?: string;
     contactPhone?: string;
     address?:      string;
@@ -42,8 +44,8 @@ export class CompanyService {
     return this.http.post<Company>(`${this.base}/${id}/validate-documentation`, { valid, notes });
   }
 
-  forwardToState(id: string): Observable<Company> {
-    return this.http.post<Company>(`${this.base}/${id}/forward-to-state`, {});
+  forwardToState(id: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.base}/${id}/forward-to-state`, {});
   }
 
   approveLicense(id: string, licenseNumber: string, licenseExpiresAt: string): Observable<Company> {

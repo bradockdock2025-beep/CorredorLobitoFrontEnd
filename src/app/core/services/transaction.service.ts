@@ -27,7 +27,7 @@ export class TransactionService {
     return this.http.post<Transaction>(`${this.base}/${id}/block`, { reason });
   }
 
-  cancel(id: string, reason: string): Observable<Transaction> {
-    return this.http.post<Transaction>(`${this.base}/${id}/cancel`, { reason });
+  cancel(id: string): Observable<Transaction> {
+    return this.http.post<Transaction>(`${this.base}/${id}/cancel`, {});
   }
 }

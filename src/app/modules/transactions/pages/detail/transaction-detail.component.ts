@@ -104,7 +104,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
 
               <div class="detail-field">
                 <label>Pedido</label>
-                <span class="id-text">{{ tx.order?.cd ?? tx.orderId }}</span>
+                <span class="id-text">{{ tx.order?.cd ?? '—' }}</span>
               </div>
 
               <div class="detail-field">
@@ -272,7 +272,7 @@ export class TransactionDetailComponent implements OnInit {
       if (result === undefined) return;
       const reason = typeof result === 'string' ? result : '';
       this.loading = true;
-      this.transactionSvc.cancel(this.tx!.id, reason).subscribe({
+      this.transactionSvc.cancel(this.tx!.id).subscribe({
         next: (t) => {
           this.tx = t;
           this.loading = false;

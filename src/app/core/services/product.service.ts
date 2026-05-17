@@ -24,7 +24,13 @@ export class ProductService {
     return this.http.get<Product>(`${this.base}/${id}`);
   }
 
-  create(data: { name: string; description?: string; category: string; companyId: string }): Observable<Product> {
+  create(data: {
+    name:        string;
+    description?: string;
+    category:    string;
+    companyId:   string;
+    metadata?:   Record<string, string>;
+  }): Observable<Product> {
     return this.http.post<Product>(this.base, data);
   }
 

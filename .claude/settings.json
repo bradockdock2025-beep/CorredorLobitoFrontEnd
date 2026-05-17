@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ng serve *)",
+      "Read(//Users/macbookpro/Documents/LCD-DOCS/corredor-lobito/**)",
+      "Bash(npx ng *)",
+      "Bash(pkill -f \"ts-node\\\\|nest start\\\\|node.*corredor\")",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3000/docs-json)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('API OK - versão:', d.get\\('info',{}\\).get\\('version','?'\\)\\)\")",
+      "Bash(lsof -ti:3000)"
+    ],
+    "additionalDirectories": [
+      "/Users/macbookpro/Documents/LCD-DOCS/corredor-lobito/corredor-lobito-api/src/modules/orders"
+    ]
+  }
+}

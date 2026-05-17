@@ -114,10 +114,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/co
               </div>
               <div class="detail-field">
                 <label>Empresa</label>
-                <span>
-                  <span *ngIf="user.companyId" class="id-text">{{ user.companyId }}</span>
-                  <span *ngIf="!user.companyId">—</span>
-                </span>
+                <span>{{ user.company?.name ?? (user.companyId ? '—' : '—') }}</span>
               </div>
               <div class="detail-field">
                 <label>Registado em</label>

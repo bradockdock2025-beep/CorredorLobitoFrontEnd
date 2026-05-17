@@ -1,307 +1,731 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService, RegisterDto } from '../../../../core/services/auth.service';
+import { CompanyService } from '../../../../core/services/company.service';
+import { CompanyCountry, CompanyType } from '../../../../core/models';
+
+type RegisterStep = 'user' | 'company' | 'done';
 
 @Component({
   selector: 'app-register',
   template: `
-    <div class="register-wrapper">
-      <div class="register-card">
+    <div class="page">
 
-        <div class="register-header">
-          <div class="gov-label">REPÚBLICA DE ANGOLA</div>
-          <h1 class="app-title">Corredor do Lobito</h1>
-          <p class="app-subtitle">Registo de Nova Empresa</p>
-        </div>
+      <!-- ── Painel esquerdo — marca ──────────────────────────────── -->
+      <div class="brand-panel">
+        <div class="brand-inner">
+          <div class="gov-chip">REPÚBLICA DE ANGOLA</div>
 
-        <!-- Passo 1: tipo de registo -->
-        <div class="step-toggle" *ngIf="!submitted">
-          <button mat-stroked-button [class.active]="mode === 'new'" (click)="mode = 'new'">
-            Nova Empresa
-          </button>
-          <button mat-stroked-button [class.active]="mode === 'existing'" (click)="mode = 'existing'">
-            Juntar a Empresa Existente
-          </button>
-        </div>
-
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="register-form" *ngIf="!submitted">
-
-          <!-- Dados do utilizador -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Nome completo</mat-label>
-            <input matInput formControlName="fullName">
-            <mat-error *ngIf="form.get('fullName')?.hasError('required')">Obrigatório</mat-error>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>E-mail</mat-label>
-            <input matInput formControlName="email" type="email">
-            <mat-error *ngIf="form.get('email')?.hasError('required')">Obrigatório</mat-error>
-            <mat-error *ngIf="form.get('email')?.hasError('email')">E-mail inválido</mat-error>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Senha</mat-label>
-            <input matInput formControlName="password" [type]="showPwd ? 'text' : 'password'">
-            <button mat-icon-button matSuffix type="button" (click)="showPwd = !showPwd">
-              <mat-icon>{{ showPwd ? 'visibility_off' : 'visibility' }}</mat-icon>
-            </button>
-            <mat-error *ngIf="form.get('password')?.hasError('required')">Obrigatório</mat-error>
-            <mat-error *ngIf="form.get('password')?.hasError('minlength')">Mínimo 8 caracteres</mat-error>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Função</mat-label>
-            <mat-select formControlName="role">
-              <mat-option value="buyer">Comprador (Buyer)</mat-option>
-              <mat-option value="producer">Produtor (Producer)</mat-option>
-              <mat-option value="operator">Operador Logístico (Operator)</mat-option>
-            </mat-select>
-            <mat-error *ngIf="form.get('role')?.hasError('required')">Obrigatório</mat-error>
-          </mat-form-field>
-
-          <!-- Campos para empresa existente -->
-          <ng-container *ngIf="mode === 'existing'">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>ID da Empresa</mat-label>
-              <input matInput formControlName="companyId" placeholder="uuid-da-empresa">
-              <mat-hint>UUID da empresa à qual pretende juntar-se</mat-hint>
-              <mat-error *ngIf="form.get('companyId')?.hasError('required')">Obrigatório</mat-error>
-            </mat-form-field>
-          </ng-container>
-
-          <!-- Campos para nova empresa -->
-          <ng-container *ngIf="mode === 'new'">
-            <mat-divider></mat-divider>
-            <p class="section-label">Dados da Empresa</p>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Nome da Empresa</mat-label>
-              <input matInput formControlName="companyName">
-              <mat-error *ngIf="form.get('companyName')?.hasError('required')">Obrigatório</mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>País</mat-label>
-              <mat-select formControlName="companyCountry">
-                <mat-option value="angola">Angola</mat-option>
-                <mat-option value="zambia">Zâmbia</mat-option>
-                <mat-option value="drc">RDC</mat-option>
-                <mat-option value="tanzania">Tanzânia</mat-option>
-                <mat-option value="zimbabwe">Zimbabwe</mat-option>
-                <mat-option value="mozambique">Moçambique</mat-option>
-              </mat-select>
-              <mat-error *ngIf="form.get('companyCountry')?.hasError('required')">Obrigatório</mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>E-mail da Empresa</mat-label>
-              <input matInput formControlName="companyEmail" type="email">
-              <mat-error *ngIf="form.get('companyEmail')?.hasError('required')">Obrigatório</mat-error>
-              <mat-error *ngIf="form.get('companyEmail')?.hasError('email')">E-mail inválido</mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Telefone da Empresa</mat-label>
-              <input matInput formControlName="companyPhone" placeholder="+244 923 000 001">
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Morada</mat-label>
-              <input matInput formControlName="companyAddress">
-            </mat-form-field>
-          </ng-container>
-
-          <div class="error-msg" *ngIf="errorMsg">
-            <mat-icon>error_outline</mat-icon>
-            <span>{{ errorMsg }}</span>
+          <div class="brand-logo">
+            <mat-icon class="logo-icon">route</mat-icon>
           </div>
 
-          <button mat-raised-button color="primary" type="submit" class="submit-btn" [disabled]="loading">
-            <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
-            <span *ngIf="!loading">Registar</span>
-          </button>
+          <h1 class="brand-title">Corredor do Lobito</h1>
+          <p class="brand-sub">Plataforma Governamental de<br>Comércio Transfronteiriço</p>
 
-          <div class="login-link">
-            Já tem conta? <a routerLink="/login">Entrar</a>
+          <div class="brand-features">
+            <div class="feature-item">
+              <mat-icon>verified</mat-icon>
+              <span>Licenciamento digital integrado</span>
+            </div>
+            <div class="feature-item">
+              <mat-icon>swap_horiz</mat-icon>
+              <span>6 países do Corredor do Lobito</span>
+            </div>
+            <div class="feature-item">
+              <mat-icon>security</mat-icon>
+              <span>Plataforma governamental segura</span>
+            </div>
+            <div class="feature-item">
+              <mat-icon>track_changes</mat-icon>
+              <span>Rastreio de embarques em tempo real</span>
+            </div>
           </div>
 
-        </form>
-
-        <!-- Sucesso -->
-        <div class="success-block" *ngIf="submitted">
-          <mat-icon class="success-icon">check_circle</mat-icon>
-          <h2>Registo concluído!</h2>
-          <p>A empresa <strong>{{ companyName }}</strong> foi registada e aguarda validação do STAFF e aprovação do STATE.</p>
-          <p class="pending-note">Pode fazer login, mas não conseguirá criar pedidos enquanto a licença estiver <em>pendente</em>.</p>
-          <button mat-raised-button color="primary" routerLink="/login">Ir para o Login</button>
+          <div class="brand-footer">
+            Já tem conta?
+            <a routerLink="/login" class="brand-link">Entrar aqui</a>
+          </div>
         </div>
-
       </div>
+
+      <!-- ── Painel direito — formulário ─────────────────────────── -->
+      <div class="form-panel">
+        <div class="form-inner">
+
+          <!-- Indicador de progresso -->
+          <div class="stepper" *ngIf="step !== 'done'">
+            <div class="step" [class.active]="step === 'user'" [class.completed]="step === 'company'">
+              <div class="step-dot">
+                <mat-icon *ngIf="step === 'company'">check</mat-icon>
+                <span *ngIf="step === 'user'">1</span>
+              </div>
+              <span class="step-label-text">Conta</span>
+            </div>
+            <div class="step-connector" [class.filled]="step === 'company'"></div>
+            <div class="step" [class.active]="step === 'company'">
+              <div class="step-dot"><span>2</span></div>
+              <span class="step-label-text">Empresa</span>
+            </div>
+          </div>
+
+          <!-- ── PASSO 1: Dados do utilizador ──────────────────── -->
+          <ng-container *ngIf="step === 'user'">
+            <div class="form-heading">
+              <h2>Criar conta</h2>
+              <p>Preencha os seus dados pessoais para começar.</p>
+            </div>
+
+            <form [formGroup]="userForm" (ngSubmit)="onSubmitUser()" class="field-stack">
+
+              <div class="field-group">
+                <label class="field-label">Nome completo <span class="req">*</span></label>
+                <mat-form-field appearance="outline" class="full-width">
+                  <input matInput formControlName="fullName" placeholder="João Silva">
+                  <mat-error *ngIf="userForm.get('fullName')?.hasError('required')">Obrigatório</mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label">E-mail <span class="req">*</span></label>
+                <mat-form-field appearance="outline" class="full-width">
+                  <input matInput formControlName="email" type="email" placeholder="email@empresa.ao">
+                  <mat-error *ngIf="userForm.get('email')?.hasError('required')">Obrigatório</mat-error>
+                  <mat-error *ngIf="userForm.get('email')?.hasError('email')">E-mail inválido</mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label">Telefone <span class="optional">(opcional)</span></label>
+                <mat-form-field appearance="outline" class="full-width">
+                  <input matInput formControlName="phone" placeholder="+244 923 000 001">
+                </mat-form-field>
+              </div>
+
+              <div class="field-row">
+                <div class="field-group flex-1">
+                  <label class="field-label">Senha <span class="req">*</span></label>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <input matInput formControlName="password" [type]="showPwd ? 'text' : 'password'" placeholder="Mín. 12 caracteres">
+                    <button mat-icon-button matSuffix type="button" (click)="showPwd = !showPwd" tabindex="-1">
+                      <mat-icon>{{ showPwd ? 'visibility_off' : 'visibility' }}</mat-icon>
+                    </button>
+                    <mat-error *ngIf="userForm.get('password')?.hasError('required')">Obrigatório</mat-error>
+                    <mat-error *ngIf="userForm.get('password')?.hasError('minlength')">Mínimo 12 caracteres</mat-error>
+                  </mat-form-field>
+                </div>
+
+                <div class="field-group flex-1">
+                  <label class="field-label">Função <span class="req">*</span></label>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-select formControlName="role">
+                      <mat-option value="buyer">Comprador</mat-option>
+                      <mat-option value="producer">Produtor</mat-option>
+                      <mat-option value="operator">Operador Logístico</mat-option>
+                    </mat-select>
+                    <mat-error>Obrigatório</mat-error>
+                  </mat-form-field>
+                </div>
+              </div>
+
+              <div class="error-banner" *ngIf="errorMsg">
+                <mat-icon>error_outline</mat-icon>
+                <span>{{ errorMsg }}</span>
+              </div>
+
+              <button mat-flat-button class="cta-btn" type="submit" [disabled]="loading">
+                <mat-spinner diameter="18" *ngIf="loading"></mat-spinner>
+                <span *ngIf="!loading">Continuar</span>
+                <mat-icon *ngIf="!loading">arrow_forward</mat-icon>
+              </button>
+
+            </form>
+          </ng-container>
+
+          <!-- ── PASSO 2: Dados da empresa ─────────────────────── -->
+          <ng-container *ngIf="step === 'company'">
+            <div class="form-heading">
+              <h2>Dados da empresa</h2>
+              <p>Registe a empresa para iniciar o processo de licenciamento.</p>
+            </div>
+
+            <form [formGroup]="companyForm" (ngSubmit)="onSubmitCompany()" class="field-stack">
+
+              <div class="field-group">
+                <label class="field-label">Nome da empresa <span class="req">*</span></label>
+                <mat-form-field appearance="outline" class="full-width">
+                  <input matInput formControlName="name" placeholder="Ex: Empresa XYZ Lda">
+                  <mat-error>Obrigatório</mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="field-row">
+                <div class="field-group flex-1">
+                  <label class="field-label">País <span class="req">*</span></label>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-select formControlName="country">
+                      <mat-option value="angola">Angola</mat-option>
+                      <mat-option value="zambia">Zâmbia</mat-option>
+                      <mat-option value="drc">RDC</mat-option>
+                      <mat-option value="tanzania">Tanzânia</mat-option>
+                      <mat-option value="zimbabwe">Zimbabwe</mat-option>
+                      <mat-option value="mozambique">Moçambique</mat-option>
+                    </mat-select>
+                    <mat-error>Obrigatório</mat-error>
+                  </mat-form-field>
+                </div>
+
+                <div class="field-group flex-1">
+                  <label class="field-label">Tipo de empresa</label>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-select formControlName="companyType" placeholder="Seleccionar">
+                      <mat-option value="">Não especificado</mat-option>
+                      <mat-option value="importer">Importador</mat-option>
+                      <mat-option value="exporter">Exportador</mat-option>
+                      <mat-option value="mixed">Misto</mat-option>
+                      <mat-option value="producer">Produtor</mat-option>
+                      <mat-option value="logistics">Logística</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label">E-mail de contacto <span class="req">*</span></label>
+                <mat-form-field appearance="outline" class="full-width">
+                  <input matInput formControlName="contactEmail" type="email" placeholder="geral@empresa.ao">
+                  <mat-error *ngIf="companyForm.get('contactEmail')?.hasError('required')">Obrigatório</mat-error>
+                  <mat-error *ngIf="companyForm.get('contactEmail')?.hasError('email')">E-mail inválido</mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="field-row">
+                <div class="field-group flex-1">
+                  <label class="field-label">Telefone</label>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <input matInput formControlName="contactPhone" placeholder="+244 923 000 002">
+                  </mat-form-field>
+                </div>
+
+                <div class="field-group flex-1">
+                  <label class="field-label">Morada</label>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <input matInput formControlName="address" placeholder="Rua, n.º, cidade">
+                  </mat-form-field>
+                </div>
+              </div>
+
+              <div class="error-banner" *ngIf="errorMsg">
+                <mat-icon>error_outline</mat-icon>
+                <span>{{ errorMsg }}</span>
+              </div>
+
+              <button mat-flat-button class="cta-btn" type="submit" [disabled]="loading">
+                <mat-spinner diameter="18" *ngIf="loading"></mat-spinner>
+                <span *ngIf="!loading">Registar empresa</span>
+                <mat-icon *ngIf="!loading">check</mat-icon>
+              </button>
+
+              <button mat-button type="button" class="skip-btn" (click)="skipCompany()">
+                Associar empresa mais tarde
+              </button>
+
+            </form>
+          </ng-container>
+
+          <!-- ── Sucesso ────────────────────────────────────────── -->
+          <div class="done-block" *ngIf="step === 'done'">
+            <div class="done-icon-wrap">
+              <mat-icon>check_circle</mat-icon>
+            </div>
+            <h2>Registo concluído!</h2>
+
+            <ng-container *ngIf="companyName">
+              <p>A empresa <strong>{{ companyName }}</strong> foi registada e aguarda validação do STAFF e aprovação do STATE.</p>
+              <div class="info-note">
+                <mat-icon>info</mat-icon>
+                <span>Pode fazer login, mas não conseguirá criar pedidos enquanto a licença estiver pendente.</span>
+              </div>
+            </ng-container>
+
+            <ng-container *ngIf="!companyName">
+              <p>A sua conta foi criada com sucesso. Pode associar uma empresa posteriormente.</p>
+            </ng-container>
+
+            <a routerLink="/login" mat-flat-button class="cta-btn done-link">
+              Ir para o Login
+              <mat-icon>login</mat-icon>
+            </a>
+          </div>
+
+        </div>
+      </div>
+
     </div>
   `,
   styles: [`
-    .register-wrapper {
-      min-height: 100vh;
+    :host {
+      display: block;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────────── */
+    .page {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Painel esquerdo — marca ──────────────────────────────────── */
+    .brand-panel {
+      width: 38%;
+      min-width: 280px;
+      background: linear-gradient(160deg, var(--primary) 0%, #0d2137 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #1a3c5e 0%, #0d2137 100%);
-      padding: 24px;
+      padding: 48px 36px;
+      position: relative;
+      overflow: hidden;
     }
 
-    .register-card {
-      background: #fff;
-      border-radius: 12px;
-      padding: 40px 36px;
-      width: 100%;
-      max-width: 480px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    .brand-panel::before {
+      content: '';
+      position: absolute;
+      top: -80px;
+      right: -80px;
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
     }
 
-    .register-header { text-align: center; margin-bottom: 24px; }
-
-    .gov-label {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: #c00;
-      margin-bottom: 8px;
+    .brand-panel::after {
+      content: '';
+      position: absolute;
+      bottom: -60px;
+      left: -60px;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.03);
     }
 
-    .app-title { font-size: 22px; font-weight: 700; color: #1a3c5e; margin: 0 0 4px; }
-    .app-subtitle { font-size: 13px; color: #666; margin: 0; }
-
-    .step-toggle {
+    .brand-inner {
+      position: relative;
+      z-index: 1;
       display: flex;
-      gap: 8px;
-      margin-bottom: 20px;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+      max-width: 320px;
     }
-    .step-toggle button { flex: 1; }
-    .step-toggle button.active { background: #1a3c5e; color: #fff; }
 
-    .register-form { display: flex; flex-direction: column; gap: 4px; }
-    .full-width { width: 100%; }
-
-    .section-label {
-      font-size: 12px;
-      font-weight: 600;
+    .gov-chip {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 2.5px;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #888;
-      margin: 12px 0 4px;
+      color: #ef5350;
+      background: rgba(239,83,80,0.12);
+      border: 1px solid rgba(239,83,80,0.25);
+      border-radius: 4px;
+      padding: 4px 10px;
+      display: inline-block;
+      width: fit-content;
     }
 
-    .error-msg {
+    .brand-logo {
+      width: 56px;
+      height: 56px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 16px;
       display: flex;
       align-items: center;
-      gap: 6px;
-      color: #c5221f;
-      font-size: 13px;
-      background: #fce8e6;
-      padding: 8px 12px;
-      border-radius: 6px;
+      justify-content: center;
     }
 
-    .submit-btn { width: 100%; height: 44px; font-size: 15px; font-weight: 600; margin-top: 8px; background: #1a3c5e !important; }
+    .logo-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      color: #fff;
+    }
 
-    .login-link { text-align: center; font-size: 13px; color: #666; margin-top: 12px; }
-    .login-link a { color: #1a3c5e; font-weight: 600; text-decoration: none; }
+    .brand-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      margin: 0;
+      line-height: 1.2;
+    }
 
-    .success-block { text-align: center; padding: 16px 0; }
-    .success-icon { font-size: 64px; width: 64px; height: 64px; color: #2e7d32; margin-bottom: 16px; }
-    .success-block h2 { color: #1a3c5e; margin: 0 0 12px; }
-    .success-block p { color: #555; font-size: 14px; }
-    .pending-note { background: #fff8e1; padding: 10px; border-radius: 6px; font-size: 13px !important; }
+    .brand-sub {
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    .brand-features {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 8px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(255,255,255,0.75);
+      font-size: 13px;
+    }
+
+    .feature-item mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: rgba(255,255,255,0.45);
+      flex-shrink: 0;
+    }
+
+    .brand-footer {
+      margin-top: 16px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.45);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 20px;
+    }
+
+    .brand-link {
+      color: #90caf9;
+      font-weight: 600;
+      text-decoration: none;
+      margin-left: 4px;
+    }
+    .brand-link:hover { text-decoration: underline; }
+
+    /* ── Painel direito — formulário ──────────────────────────────── */
+    .form-panel {
+      flex: 1;
+      background: #fafafa;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      overflow-y: auto;
+      padding: 40px 24px;
+    }
+
+    .form-inner {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* ── Stepper ──────────────────────────────────────────────────── */
+    .stepper {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .step-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #e0e0e0;
+      color: #bbb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      transition: all 0.25s;
+    }
+
+    .step.active .step-dot {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .step.completed .step-dot {
+      background: #2e7d32;
+      color: #fff;
+    }
+
+    .step-label-text {
+      font-size: 11px;
+      color: #bbb;
+      font-weight: 500;
+    }
+
+    .step.active .step-label-text   { color: var(--primary); font-weight: 700; }
+    .step.completed .step-label-text { color: #2e7d32; }
+
+    .step-connector {
+      flex: 1;
+      height: 2px;
+      background: #e0e0e0;
+      margin: 0 8px 16px;
+      transition: background 0.3s;
+    }
+
+    .step-connector.filled { background: #2e7d32; }
+
+    /* ── Cabeçalho do formulário ──────────────────────────────────── */
+    .form-heading h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a2e42;
+      margin: 0 0 6px;
+    }
+
+    .form-heading p {
+      font-size: 14px;
+      color: #888;
+      margin: 0;
+    }
+
+    /* ── Campos ───────────────────────────────────────────────────── */
+    .field-stack { display: flex; flex-direction: column; gap: 2px; }
+
+    .field-group { display: flex; flex-direction: column; gap: 0; }
+
+    .field-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .flex-1 { flex: 1; min-width: 0; }
+
+    .field-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .req { color: #e53935; margin-left: 2px; }
+
+    .optional { font-weight: 400; color: #aaa; }
+
+    .full-width { width: 100%; }
+
+    /* Reduzir padding interno do mat-form-field */
+    ::ng-deep .mat-form-field-wrapper { padding-bottom: 12px !important; }
+    ::ng-deep .mat-form-field-outline { border-radius: 8px !important; }
+    ::ng-deep .mat-form-field-outline-start { border-radius: 8px 0 0 8px !important; }
+    ::ng-deep .mat-form-field-outline-end   { border-radius: 0 8px 8px 0 !important; }
+    ::ng-deep .mat-form-field-flex { height: 44px !important; align-items: center !important; }
+    ::ng-deep .mat-select-trigger, ::ng-deep .mat-input-element { font-size: 14px !important; }
+
+    /* ── Erro ─────────────────────────────────────────────────────── */
+    .error-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fce8e6;
+      color: #c5221f;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .error-banner mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+
+    /* ── Botões ───────────────────────────────────────────────────── */
+    .cta-btn {
+      height: 46px !important;
+      background: var(--primary) !important;
+      color: #fff !important;
+      border-radius: 10px !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+      margin-top: 8px;
+      width: 100%;
+      text-decoration: none;
+    }
+
+    .skip-btn {
+      width: 100%;
+      color: #aaa !important;
+      font-size: 13px !important;
+    }
+
+    /* ── Sucesso ──────────────────────────────────────────────────── */
+    .done-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 16px;
+      padding: 32px 0;
+    }
+
+    .done-icon-wrap {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #e8f5e9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .done-icon-wrap mat-icon {
+      font-size: 40px;
+      width: 40px;
+      height: 40px;
+      color: #2e7d32;
+    }
+
+    .done-block h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a2e42;
+      margin: 0;
+    }
+
+    .done-block p {
+      font-size: 14px;
+      color: #555;
+      margin: 0;
+      max-width: 380px;
+    }
+
+    .info-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      background: #fff8e1;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #795548;
+      text-align: left;
+      max-width: 400px;
+    }
+    .info-note mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+
+    .done-link { width: 280px; margin-top: 8px; }
 
     mat-spinner { display: inline-block; }
-    mat-divider { margin: 12px 0 8px; }
   `],
 })
 export class RegisterComponent implements OnInit {
-  form!: FormGroup;
-  mode: 'new' | 'existing' = 'new';
-  loading    = false;
-  showPwd    = false;
-  errorMsg   = '';
-  submitted  = false;
+  userForm!:    FormGroup;
+  companyForm!: FormGroup;
+
+  step:        RegisterStep = 'user';
+  loading     = false;
+  showPwd     = false;
+  errorMsg    = '';
   companyName = '';
 
   constructor(
     private fb: FormBuilder,
     private auth: AuthService,
+    private companySvc: CompanyService,
     private router: Router,
-    private snackBar: MatSnackBar,
   ) {}
 
   ngOnInit(): void {
-    this.form = this.fb.group({
-      fullName:       ['', Validators.required],
-      email:          ['', [Validators.required, Validators.email]],
-      password:       ['', [Validators.required, Validators.minLength(8)]],
-      role:           ['buyer', Validators.required],
-      companyId:      [''],
-      companyName:    [''],
-      companyCountry: ['angola'],
-      companyEmail:   ['', Validators.email],
-      companyPhone:   [''],
-      companyAddress: [''],
+    this.userForm = this.fb.group({
+      fullName: ['', Validators.required],
+      email:    ['', [Validators.required, Validators.email]],
+      phone:    [''],
+      password: ['', [Validators.required, Validators.minLength(12)]],
+      role:     ['buyer', Validators.required],
+    });
+
+    this.companyForm = this.fb.group({
+      name:         ['', Validators.required],
+      country:      ['angola', Validators.required],
+      companyType:  [''],
+      contactEmail: ['', [Validators.required, Validators.email]],
+      contactPhone: [''],
+      address:      [''],
     });
   }
 
-  onSubmit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
-
-    const v = this.form.value;
-
-    if (this.mode === 'existing' && !v.companyId?.trim()) {
-      this.errorMsg = 'Indique o ID da empresa existente.';
-      return;
-    }
-    if (this.mode === 'new' && (!v.companyName?.trim() || !v.companyCountry || !v.companyEmail?.trim())) {
-      this.errorMsg = 'Preencha o nome, país e e-mail da empresa.';
-      return;
-    }
+  onSubmitUser(): void {
+    if (this.userForm.invalid) { this.userForm.markAllAsTouched(); return; }
 
     this.loading  = true;
     this.errorMsg = '';
 
+    const v = this.userForm.value;
     const dto: RegisterDto = {
       email:    v.email,
       password: v.password,
       fullName: v.fullName,
       role:     v.role,
     };
-
-    if (this.mode === 'existing') {
-      dto.companyId = v.companyId;
-    } else {
-      dto.companyName    = v.companyName;
-      dto.companyCountry = v.companyCountry;
-      dto.companyEmail   = v.companyEmail;
-      if (v.companyPhone)   dto.companyPhone   = v.companyPhone;
-      if (v.companyAddress) dto.companyAddress = v.companyAddress;
-    }
+    if (v.phone?.trim()) dto.phone = v.phone.trim();
 
     this.auth.register(dto).subscribe({
-      next: (res) => {
-        this.loading     = false;
-        this.submitted   = true;
-        this.companyName = res.company?.name ?? '';
-      },
+      next: () => { this.loading = false; this.step = 'company'; },
       error: (err: HttpErrorResponse) => {
         this.loading = false;
         const data = err.error;
-        if (Array.isArray(data?.message)) {
-          this.errorMsg = data.message.join(' | ');
-        } else {
-          this.errorMsg = data?.message ?? 'Erro ao registar. Tente novamente.';
-        }
+        this.errorMsg = Array.isArray(data?.message) ? data.message.join(' | ') : (data?.message ?? 'Erro ao registar.');
       },
     });
+  }
+
+  onSubmitCompany(): void {
+    if (this.companyForm.invalid) { this.companyForm.markAllAsTouched(); return; }
+
+    this.loading  = true;
+    this.errorMsg = '';
+
+    const v = this.companyForm.value;
+    const payload: {
+      name:          string;
+      country:       CompanyCountry;
+      contactEmail:  string;
+      companyType?:  CompanyType;
+      contactPhone?: string;
+      address?:      string;
+    } = {
+      name:         v.name,
+      country:      v.country as CompanyCountry,
+      contactEmail: v.contactEmail,
+    };
+    if (v.companyType)  payload.companyType  = v.companyType as CompanyType;
+    if (v.contactPhone) payload.contactPhone = v.contactPhone;
+    if (v.address)      payload.address      = v.address;
+
+    this.companySvc.create(payload).subscribe({
+      next: (company) => { this.loading = false; this.companyName = company.name; this.step = 'done'; },
+      error: (err: HttpErrorResponse) => {
+        this.loading = false;
+        const data = err.error;
+        this.errorMsg = Array.isArray(data?.message) ? data.message.join(' | ') : (data?.message ?? 'Erro ao criar empresa.');
+      },
+    });
+  }
+
+  skipCompany(): void {
+    this.companyName = '';
+    this.step        = 'done';
   }
 }

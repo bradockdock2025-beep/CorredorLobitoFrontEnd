@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../../../core/services/auth.service';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -17,7 +16,8 @@ import { HttpErrorResponse } from '@angular/common/http';
           <p class="app-subtitle">Plataforma Governamental de Comércio Transfronteiriço</p>
         </div>
 
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form">
+        <!-- ── PASSO 1: Email + Password ───────────────────────────── -->
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form" *ngIf="!show2FAInput">
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>E-mail</mat-label>
@@ -55,7 +55,45 @@ import { HttpErrorResponse } from '@angular/common/http';
 
         </form>
 
-        <div class="login-footer">
+        <!-- ── PASSO 2: Código TOTP (2FA activo) ────────────────────── -->
+        <div class="twofa-block" *ngIf="show2FAInput">
+          <div class="twofa-header">
+            <mat-icon class="twofa-icon">security</mat-icon>
+            <h2>Autenticação em 2 Factores</h2>
+            <p>Abra o Google Authenticator e introduza o código de 6 dígitos.</p>
+          </div>
+
+          <form [formGroup]="twoFAForm" (ngSubmit)="onValidate2FA()" class="login-form">
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Código do autenticador</mat-label>
+              <mat-icon matPrefix>pin</mat-icon>
+              <input matInput formControlName="code" type="text" inputmode="numeric"
+                     maxlength="6" placeholder="000000" autocomplete="one-time-code">
+              <mat-error *ngIf="twoFAForm.get('code')?.hasError('required')">Código obrigatório</mat-error>
+              <mat-error *ngIf="twoFAForm.get('code')?.hasError('pattern')">6 dígitos numéricos</mat-error>
+            </mat-form-field>
+
+            <div class="error-msg" *ngIf="errorMsg">
+              <mat-icon>error_outline</mat-icon>
+              <span>{{ errorMsg }}</span>
+            </div>
+
+            <button mat-raised-button color="primary" type="submit" class="login-btn" [disabled]="loading">
+              <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
+              <span *ngIf="!loading">Verificar</span>
+            </button>
+
+            <button mat-button type="button" class="back-btn" (click)="resetTo2FALogin()">
+              <mat-icon>arrow_back</mat-icon> Voltar ao login
+            </button>
+
+          </form>
+
+          <p class="lost-device">Perdeu acesso ao autenticador? Contacte o administrador do sistema.</p>
+        </div>
+
+        <div class="login-footer" *ngIf="!show2FAInput">
           <span>Sessão válida por 8 horas</span>
           <div class="register-link">
             Empresa nova? <a routerLink="/login/register">Registar aqui</a>
@@ -71,7 +109,7 @@ import { HttpErrorResponse } from '@angular/common/http';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #1a3c5e 0%, #0d2137 100%);
+      background: linear-gradient(135deg, var(--primary) 0%, #0d2137 100%);
       padding: 24px;
     }
 
@@ -98,7 +136,7 @@ import { HttpErrorResponse } from '@angular/common/http';
     .app-title {
       font-size: 24px;
       font-weight: 700;
-      color: #1a3c5e;
+      color: var(--primary);
       margin: 0 0 4px;
     }
 
@@ -129,7 +167,7 @@ import { HttpErrorResponse } from '@angular/common/http';
       font-size: 15px;
       font-weight: 600;
       margin-top: 8px;
-      background: #1a3c5e !important;
+      background: var(--primary) !important;
     }
 
     .login-footer {
@@ -144,26 +182,56 @@ import { HttpErrorResponse } from '@angular/common/http';
       font-size: 13px;
       color: #666;
     }
-    .register-link a { color: #1a3c5e; font-weight: 600; text-decoration: none; }
+    .register-link a { color: var(--primary); font-weight: 600; text-decoration: none; }
+
+    .twofa-block { display: flex; flex-direction: column; gap: 16px; }
+
+    .twofa-header {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .twofa-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .twofa-header h2 { color: var(--primary); margin: 0 0 8px; font-size: 20px; }
+    .twofa-header p  { color: #555; font-size: 14px; margin: 0; }
+
+    .back-btn { width: 100%; margin-top: 4px; color: #666; }
+
+    .lost-device {
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+      margin-top: 8px;
+    }
 
     mat-spinner { display: inline-block; }
   `],
 })
 export class LoginComponent {
   form: FormGroup;
-  loading = false;
+  twoFAForm: FormGroup;
+  loading      = false;
   showPassword = false;
-  errorMsg = '';
+  errorMsg     = '';
+  show2FAInput = false;
+  private tempToken = '';
 
   constructor(
     private fb: FormBuilder,
     private auth: AuthService,
     private router: Router,
-    private snackBar: MatSnackBar,
   ) {
     this.form = this.fb.group({
       email:    ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
+    });
+    this.twoFAForm = this.fb.group({
+      code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
     });
   }
 
@@ -177,19 +245,67 @@ export class LoginComponent {
     this.auth.login(email, password).subscribe({
       next: (res) => {
         this.loading = false;
-        const route = this.auth.getHomeRoute(res.user.role);
-        this.router.navigate([route]);
+
+        if (!res.requires2fa) {
+          // Cenário 1 — login completo, sem 2FA
+          this.auth.saveSession(res.access_token!, res.user!);
+          this.router.navigate([this.auth.getHomeRoute(res.user!.role)]);
+
+        } else if (res.twoFactorSetup) {
+          // Cenário 2 — 2FA obrigatório mas não configurado ainda
+          this.auth.saveSession(res.access_token!, res.user!);
+          this.router.navigate(['/login/2fa/setup']);
+
+        } else {
+          // Cenário 3 — 2FA activo → pedir código TOTP
+          this.tempToken   = res.tempToken!;
+          this.show2FAInput = true;
+        }
       },
-      error: (err: HttpErrorResponse) => {
+      error: (err: { status: number; error?: { message?: string; retryAfter?: number } }) => {
         this.loading = false;
         if (err.status === 401) {
           this.errorMsg = 'Credenciais inválidas.';
         } else if (err.status === 403) {
           this.errorMsg = 'Utilizador bloqueado. Contacte o administrador.';
+        } else if (err.status === 429) {
+          const seconds = err.error?.retryAfter ?? 60;
+          this.errorMsg = `Demasiadas tentativas. Aguarde ${seconds} segundos.`;
         } else {
           this.errorMsg = 'Erro de ligação ao servidor.';
         }
       },
     });
+  }
+
+  onValidate2FA(): void {
+    if (this.twoFAForm.invalid) return;
+    this.loading  = true;
+    this.errorMsg = '';
+
+    const { code } = this.twoFAForm.value;
+
+    this.auth.validate2FA(this.tempToken, code).subscribe({
+      next: (res) => {
+        this.loading = false;
+        this.auth.saveSession(res.access_token, res.user);
+        this.router.navigate([this.auth.getHomeRoute(res.user.role)]);
+      },
+      error: (err: { status: number }) => {
+        this.loading = false;
+        if (err.status === 401) {
+          this.errorMsg = 'Código inválido ou token expirado. Tente novamente desde o início.';
+        } else {
+          this.errorMsg = 'Erro ao validar código. Tente novamente.';
+        }
+      },
+    });
+  }
+
+  resetTo2FALogin(): void {
+    this.show2FAInput = false;
+    this.tempToken    = '';
+    this.errorMsg     = '';
+    this.twoFAForm.reset();
   }
 }

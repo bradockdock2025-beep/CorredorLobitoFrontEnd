@@ -75,12 +75,12 @@ import { AuditLog } from '../../../../core/models';
             <!-- Panel body -->
             <div class="detail-grid mb-md">
               <div class="detail-field">
-                <label>Entidade / ID</label>
-                <span>{{ l.entity }}&nbsp;/&nbsp;<span class="id-text">{{ l.entityId }}</span></span>
+                <label>Entidade</label>
+                <span>{{ l.entity | titlecase }}</span>
               </div>
               <div class="detail-field">
-                <label>Utilizador</label>
-                <span class="id-text">{{ l.userId }}</span>
+                <label>Role</label>
+                <span class="role-chip">{{ l.role }}</span>
               </div>
               <div class="detail-field">
                 <label>Data / Hora</label>
